@@ -1,0 +1,533 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "mybatis-3-mapper.dtd" >
+<mapper namespace="reserveMapper">
+
+		<!--   하연 : 조인떄문에 야매로 가공한 resultSet 입니다.. -->
+		<resultMap id="joinReserveResultSet" type="reserve">
+			<result column="RESERVE_NO" property="reserveNo" />
+			<result column="RESERVE_STATUS" property="reserveStatus" />
+			<result column="RESERVE_DATE" property="reserveDate" />
+			<result column="PRICE" property="price" />
+			<result column="USE_DATE" property="useDate" />
+			<result column="REVIEW_NO" property="spaceNo" />
+			<!-- 여기 다른 테이블 조인한거 -->
+			<result column="SPACE_TITLE" property="memNo" />
+			<result column="ADDRESS_DEFAULT" property="denyMessage" />
+			<result column="ATTACHMENT_NO" property="endTime" />
+			<result column="ATTACHMENT_RENAME" property="attachmentRename" />
+			<result column="MEM_ID" property="memId" />
+		</resultMap>
+		
+		<!--   하연 : 조인떄문에 야매로 가공한 resultSet 입니다.. -->
+		<resultMap id="joinReserveDetailResultSet" type="reserve">
+			<result column="RESERVE_NO" property="reserveNo" />
+			<result column="RESERVE_DATE" property="reserveDate" />
+			<result column="USE_DATE" property="useDate" />
+			<result column="START_TIME" property="startTime" />
+			<result column="END_TIME" property="endTime" />
+			<result column="RESERVE_COUNT" property="reserveCount" />
+			<result column="PRICE" property="price" />
+			<result column="MEM_NO" property="memNo" />
+			<result column="MEM_NAME" property="memName" />
+			<result column="RESERVE_STATUS" property="reserveStatus" />
+			
+			<!-- 회원(MEMBER)테이블 -->
+			<result column="PHONE" property="denyMessage" />
+			<result column="EMAIL" property="email" />
+			<result column="NICKNAME" property="nickname" />
+			<!-- PAYMENT 테이블 -->
+			<result column="PAY_METHOD" property="payMethod" />
+			<result column="RECEIPT_URL" property="month" />
+			<!-- SPACE 테이블 -->
+			<result column="SPACE_TITLE" property="spaceTitle" />
+			<result column="ADDRESS_DEFAULT" property="memId" />
+			<result column="ADDRESS_DETAIL" property="gender" />
+			
+			<result column="TEL" property="salesStatus" />
+			<result column="LATITUDE" property="latitude" />
+			<result column="LONGITUDE" property="longitude" />
+		</resultMap>
+		
+		<!--   하연 : 조인떄문에 야매로 가공한 resultSet 입니다.. -->
+		<resultMap id="joinReportMemberInfoSet" type="space">
+			<result column="SPACE_NO" property="spaceNo" />
+			<result column="MEM_NO" property="stypeNo" />
+			<result column="HOST_NO" property="hostNo" />
+		</resultMap>
+		
+
+		<select id="selectMyReserveListCount" parameterType="_int" resultType="_int">
+			SELECT COUNT(*)
+			FROM RESERVE
+			WHERE MEM_NO = #{memNo}
+		</select>
+
+		<select id="selectMyReservetList" resultMap="joinReserveResultSet">			
+			SELECT R.RESERVE_NO
+			     , SPACE_TITLE
+			     , ADDRESS_DEFAULT
+			     , RESERVE_STATUS
+			     , TO_CHAR(RESERVE_DATE, 'YYYYMMDD') AS "RESERVE_DATE"
+			     , ATTACHMENT_NO
+			     , PRICE
+			     , TO_CHAR(USE_DATE, 'YYYYMMDD') AS "USE_DATE"
+			     , ATTACHMENT_RENAME
+                 , REVIEW_NO
+                 , L.MEM_ID
+			FROM RESERVE R
+			JOIN SPACE S ON R.SPACE_NO= S.SPACE_NO
+			JOIN MEMBER M ON R.MEM_NO = M.MEM_NO
+			JOIN SPACE_ATTACHMENT A ON S.SPACE_NO = A.SPACE_NO
+			JOIN MEMBER L ON S.HOST_NO = L.MEM_NO
+            LEFT  JOIN REVIEW V ON (R.RESERVE_NO = V.RESERVE_NO)
+			WHERE ATTACHMENT_LEVEL = 1
+			  AND R.MEM_NO = #{memNo}
+			ORDER BY RESERVE_NO DESC
+
+		</select>
+		
+		<select id="selectMyReserveListSortCount" parameterType="member"  resultType="_int">
+			SELECT COUNT(*)
+			FROM RESERVE
+			WHERE RESERVE_STATUS = #{memId}
+			    AND MEM_NO = #{memNo}
+		</select>
+		
+		<select id="selectMyReserveListSortConfirmCount" parameterType="member" resultType="_int">
+			<![CDATA[
+			SELECT COUNT(*)
+			FROM RESERVE
+			JOIN MEMBER USING (MEM_NO)
+			WHERE RESERVE_STATUS = 'Y'
+			  AND USE_DATE > SYSDATE	
+			  AND MEM_NO = #{memNo}	
+			]]>
+		</select>
+		
+		<select id="selectMyReserveListSortUsedCount" parameterType="member" resultType="_int">
+			<![CDATA[
+			SELECT COUNT(*)
+			FROM RESERVE
+			JOIN MEMBER USING (MEM_NO)
+			WHERE RESERVE_STATUS = 'Y'
+			  AND USE_DATE < SYSDATE	
+			  AND MEM_NO = #{memNo}		
+			]]>
+		</select>
+
+		<select id="selectMyReserveSortList" resultMap="joinReserveResultSet">
+			SELECT RESERVE_NO
+			     , SPACE_TITLE
+			     , ADDRESS_DEFAULT
+			     , RESERVE_STATUS
+			     , TO_CHAR(RESERVE_DATE, 'YYYYMMDD') AS "RESERVE_DATE"
+			     , ATTACHMENT_NO
+			     , PRICE
+			     , TO_CHAR(USE_DATE, 'YYYYMMDD') AS "USE_DATE"
+			     , ATTACHMENT_RENAME
+			FROM RESERVE R
+			JOIN SPACE USING (SPACE_NO)
+			JOIN MEMBER USING (MEM_NO)
+			JOIN SPACE_ATTACHMENT USING(SPACE_NO)
+			WHERE ATTACHMENT_LEVEL = 1
+			  AND MEM_NO = #{memNo}
+			  AND RESERVE_STATUS = #{memId}
+			ORDER BY RESERVE_NO DESC
+		</select>
+		
+		<select id="selectMyReserveSortConfirmList" resultMap="joinReserveResultSet">
+			<![CDATA[
+			SELECT RESERVE_NO
+			     , SPACE_TITLE
+			     , ADDRESS_DEFAULT
+			     , RESERVE_STATUS
+			     , TO_CHAR(RESERVE_DATE, 'YYYYMMDD') AS "RESERVE_DATE"
+			     , ATTACHMENT_NO
+			     , PRICE
+			     , TO_CHAR(USE_DATE, 'YYYYMMDD') AS "USE_DATE"
+			     , ATTACHMENT_RENAME
+			FROM RESERVE R
+			JOIN SPACE USING (SPACE_NO)
+			JOIN MEMBER USING (MEM_NO)
+			JOIN SPACE_ATTACHMENT USING(SPACE_NO)
+			WHERE ATTACHMENT_LEVEL = 1
+			  AND MEM_NO = #{memNo}
+			  AND RESERVE_STATUS = #{memId}
+			  AND USE_DATE > SYSDATE	
+			ORDER BY RESERVE_NO DESC		
+			]]>
+		</select>
+		
+		<select id="selectMyReserveSortUsedList" resultMap="joinReserveResultSet">
+			<![CDATA[
+			SELECT RESERVE_NO
+			     , SPACE_TITLE
+			     , ADDRESS_DEFAULT
+			     , RESERVE_STATUS
+			     , TO_CHAR(RESERVE_DATE, 'YYYYMMDD') AS "RESERVE_DATE"
+			     , ATTACHMENT_NO
+			     , PRICE
+			     , TO_CHAR(USE_DATE, 'YYYYMMDD') AS "USE_DATE"
+			     , ATTACHMENT_RENAME
+			FROM RESERVE R
+			JOIN SPACE USING (SPACE_NO)
+			JOIN MEMBER USING (MEM_NO)
+			JOIN SPACE_ATTACHMENT USING(SPACE_NO)
+			WHERE ATTACHMENT_LEVEL = 1
+			  AND MEM_NO = #{memNo}
+			  AND RESERVE_STATUS = #{memId}
+			  AND USE_DATE < SYSDATE	
+			ORDER BY RESERVE_NO DESC
+			]]>
+		</select>
+		
+		<select id="selectMyReserve" resultMap="joinReserveDetailResultSet">
+			SELECT RESERVE_NO 
+			     , TO_CHAR(RESERVE_DATE, 'YYYY-MM-DD') AS "RESERVE_DATE"
+			     , SPACE_TITLE
+			     , USE_DATE
+			     , START_TIME
+			     , END_TIME
+			     , RESERVE_COUNT
+			     , RESERVE_STATUS
+			     , MEM_NO
+	             , MEM_NAME
+			     , NICKNAME
+			     , PHONE
+			     , EMAIL
+			     , PAY_METHOD 
+			     , PRICE
+			     , RECEIPT_URL
+			     , ADDRESS_DEFAULT
+			     , ADDRESS_DETAIL
+			     , TEL
+			     , LATITUDE
+			     , LONGITUDE
+			  FROM RESERVE
+			  JOIN SPACE USING(SPACE_NO)
+			  JOIN MEMBER USING(MEM_NO)
+			  JOIN PAYMENT USING (RESERVE_NO)
+			 WHERE RESERVE_NO = #{reserveNo}
+		</select>
+		
+		<update id="cancleMyReserve" parameterType="_int">
+			UPDATE RESERVE
+			   SET RESERVE_STATUS = 'C'
+			 WHERE RESERVE_NO = #{rno}
+		</update>
+		
+		<select id="reportMemberInfo" resultMap="joinReportMemberInfoSet">
+			SELECT SPACE_NO
+			     , HOST_NO
+			     , MEM_NO
+			FROM SPACE
+			JOIN RESERVE USING(SPACE_NO)
+			WHERE SPACE_NO = (SELECT SPACE_NO
+			                    FROM RESERVE
+			                    WHERE RESERVE_NO = #{rno})
+			 AND RESERVE_NO = #{rno}
+		</select>
+		
+		<insert  id="insertReportMyReserve" parameterType="space">
+			INSERT INTO REPORT
+				VALUES(SEQ_RPNO.NEXTVAL
+				     , #{addressDefault}
+				     , #{addressDetail}
+				     , SYSDATE
+				     , 'N'
+				     , null
+				     , null
+				     , #{stypeNo}
+				     , #{hostNo})
+		</insert>
+		
+		<select id="selectReserveTime" resultMap="joinReserveDetailResultSet">
+			SELECT RESERVE_NO
+					  , TO_CHAR(USE_DATE, 'YYYY-MM-DD') AS USE_DATE
+					  , START_TIME
+					  , END_TIME
+			FROM RESERVE
+			WHERE SPACE_NO = #{spaceNo}
+		</select>
+		<!-- 예약 insert -->
+		<insert  id="insertReserve" parameterType="reserve">
+			INSERT INTO RESERVE 
+			VALUES (SEQ_RNO.NEXTVAL
+					      , #{reserveCount}
+					      , SYSDATE
+					      , TO_DATE(#{useDate}, 'YYYY-MM-DD')
+					      , #{startTime}
+					      , #{endTime}
+					      , #{price}
+					      , #{spaceNo}
+					      , #{memNo}
+					      , 'W'
+					      , null)
+		</insert>
+		
+		
+		<resultMap id="paymentResultSet" type="payment">
+			<result column="RECEIPT_ID" property="receiptId" />
+			<result column="RECEIPT_URL" property="receiptUrl" />
+			<result column="PAY_STATUS" property="payStatus" />
+			<result column="RESERVE_NO" property="reserveNo" />
+			<result column="PAY_METHOD" property="payMethod" />
+		</resultMap>
+		
+		<!-- 결제하기  -->
+		<insert  id="insertPay" parameterType="payment">
+			INSERT INTO PAYMENT
+			VALUES ( #{receiptId}
+			      , #{receiptUrl}
+			      , 'N'
+			      , SEQ_RNO.CURRVAL
+			      , #{payMethod})
+		</insert>
+			
+	<!-- 	정현 -->
+	<!-- 	정현 start -->
+	<!-- 	호스트 예약 관리리스트 set  -->
+	<resultMap id="hostReserveListSet" type="reserve">
+		<result column="RESERVE_NO" property="reserveNo" />
+		<result column="RESERVE_COUNT" property="reserveCount" />
+		<result column="RESERVE_DATE" property="reserveDate" />
+		<result column="USE_DATE" property="useDate" />
+		<result column="START_TIME" property="startTime" />
+		<result column="END_TIME" property="endTime" />
+		<result column="PRICE" property="price" />
+		<result column="RESERVE_STATUS" property="reserveStatus" />
+		<result column="DENY_MESSAGE" property="denyMessage" />
+		<collection property="space" ofType="space" >
+			<result column="SPACE_TITLE" property="spaceTitle" />
+		</collection>
+		<collection  property="member" ofType="member" >
+			<result column="MEM_ID" property="memId" />
+			<result column="MEM_NAME" property="memName" />
+			<result column="PHONE" property="phone" />
+		</collection>
+	</resultMap>	
+
+	<!-- 호스트 예약 리스트  개수 -->
+	<select id="selectHostReserveListCount" parameterType="_int" resultType="_int">
+ 	   SELECT COUNT(*)
+       FROM (
+       SELECT RESERVE_NO
+       FROM RESERVE R
+       JOIN MEMBER M ON R.MEM_NO = M.MEM_NO
+       JOIN SPACE S ON R.SPACE_NO = S.SPACE_NO
+       WHERE R.SPACE_NO IN (
+                    SELECT SPACE_NO
+                    FROM SPACE
+                    WHERE HOST_NO = #{memNo}
+       ))
+	</select>
+	<!-- 	호스트 예약 리스트-->
+	<select id="selectHostReserveList" parameterType="_int" resultMap="hostReserveListSet">
+	   SELECT RESERVE_NO
+	   			, RESERVE_COUNT
+                , TO_CHAR(USE_DATE, 'YYYY-MM-DD') AS USE_DATE
+                , START_TIME, END_TIME, PRICE
+                , RESERVE_STATUS
+                , R.DENY_MESSAGE
+                , M.MEM_NAME
+                , M.PHONE
+                , S.SPACE_TITLE
+                , M.MEM_ID
+       FROM RESERVE R
+       JOIN MEMBER M ON R.MEM_NO = M.MEM_NO
+       JOIN SPACE S ON R.SPACE_NO = S.SPACE_NO
+       WHERE R.SPACE_NO IN (
+                    SELECT SPACE_NO
+                    FROM SPACE
+                    WHERE HOST_NO = #{memNo}
+       )ORDER BY RESERVE_NO DESC
+	</select>
+	<!-- 호스트 검색 예약 리스트  개수 -->
+	<select id="searchHostReserveListCount" parameterType="hashmap" resultType="_int">
+ 	   SELECT COUNT(*)
+        FROM (
+        SELECT RESERVE_NO
+       FROM RESERVE R
+       JOIN MEMBER M ON R.MEM_NO = M.MEM_NO
+       JOIN SPACE S ON R.SPACE_NO = S.SPACE_NO
+       WHERE R.SPACE_NO IN (
+                    SELECT SPACE_NO
+                    FROM SPACE
+                    WHERE HOST_NO = #{memNo}
+       )
+       AND (MEM_NAME LIKE '%' || #{keyword} || '%'
+        OR  RESERVE_NO LIKE '%' || #{keyword} || '%'))
+	</select>
+	<!-- 	호스트 검색 예약 리스트-->
+	<select id="searchHostReserveList" parameterType="hashmap" resultMap="hostReserveListSet">
+	   SELECT RESERVE_NO
+	   			, RESERVE_COUNT
+                , TO_CHAR(USE_DATE, 'YYYY-MM-DD') AS USE_DATE
+                , START_TIME, END_TIME, PRICE
+                , RESERVE_STATUS
+                , R.DENY_MESSAGE
+                , M.MEM_NAME
+                , M.PHONE
+                , S.SPACE_TITLE
+                , M.MEM_ID
+       FROM RESERVE R
+       JOIN MEMBER M ON R.MEM_NO = M.MEM_NO
+       JOIN SPACE S ON R.SPACE_NO = S.SPACE_NO
+       WHERE R.SPACE_NO IN (
+                    SELECT SPACE_NO
+                    FROM SPACE
+                    WHERE HOST_NO = #{memNo}
+       )
+       AND (MEM_NAME LIKE '%' || #{keyword} || '%'
+        OR  RESERVE_NO LIKE '%' || #{keyword} || '%')
+        ORDER BY RESERVE_NO DESC
+	</select>
+	
+	<!-- 	공간 재검수 신청 -->
+	<update id="updateHostReserve" parameterType="reserve">
+		UPDATE RESERVE
+	    SET RESERVE_STATUS = #{reserveStatus}
+	     , DENY_MESSAGE = #{denyMessage}
+		 WHERE RESERVE_NO = #{reserveNo}
+	</update>
+	
+	
+	<!-- 	정현 호스트 정산내역 리스트 -->
+	<!-- 	호스트 정산 리스트 resultset  -->
+	<resultMap id="hostCalculListSet" type="payment">
+		<result column="CAL_STATUS" property="payStatus" />
+		<result column="RESERVE_NO" property="reserveNo" />
+		<result column="PAY_METHOD" property="payMethod" />
+		<collection property="reserve" ofType="reserve" >
+			<result column="RESERVE_COUNT" property="reserveCount" />	
+			<result column="LAST_DAY" property="reserveDate" />	
+			<result column="USE_DATE" property="useDate" />
+			<result column="START_TIME" property="startTime" />	
+			<result column="END_TIME" property="endTime" />		
+			<result column="PRICE" property="price" />	
+			<result column="MEM_NAME" property="memNo" />
+			<result column="PHONE" property="denyMessage" />
+			<result column="SPACE_TITLE" property="spaceTitle" />
+		</collection>
+	</resultMap>		
+
+	<!-- 호스트 정산 리스트  개수 -->
+	<select id="selectHostCalculListCount" parameterType="_int" resultType="_int">
+ 	    SELECT COUNT(*)
+		FROM (
+		SELECT P.RESERVE_NO
+		FROM PAYMENT P
+		JOIN RESERVE  R ON P.RESERVE_NO = R.RESERVE_NO
+		JOIN MEMBER M ON R.MEM_NO = M.MEM_NO
+		JOIN SPACE S ON S.SPACE_NO = R.SPACE_NO
+		WHERE PAY_STATUS = 'N'
+		AND HOST_NO = #{memNo}
+		)
+	</select>
+	<!-- 	호스트 정산 리스트-->
+	<select id="selectHostCalculList" parameterType="_int" resultMap="hostCalculListSet">
+	<![CDATA[
+	    SELECT P.RESERVE_NO, SPACE_TITLE, M.MEM_NAME, PHONE, PRICE, TO_CHAR(LAST_DAY(USE_DATE),'YYYY-MM-DD') LAST_DAY
+	    , TO_CHAR(USE_DATE,'YYYY-MM-DD') USE_DATE, PAY_METHOD, RESERVE_COUNT,START_TIME,END_TIME
+		, CASE WHEN USE_DATE < SYSDATE
+		AND TO_CHAR(SYSDATE,'YYYY-MM-DD') >  LAST_DAY(USE_DATE)
+		THEN '완료'
+		ELSE '예정'
+		END CAL_STATUS
+		FROM PAYMENT P
+		JOIN RESERVE  R ON P.RESERVE_NO = R.RESERVE_NO
+		JOIN MEMBER M ON R.MEM_NO = M.MEM_NO
+		JOIN SPACE S ON S.SPACE_NO = R.SPACE_NO
+		WHERE PAY_STATUS = 'N'
+		AND HOST_NO = #{memNo}
+		ORDER BY P.RESERVE_NO DESC
+	]]>
+	</select>
+	
+	<!-- 호스트 검색 정산 리스트  개수 -->
+	<select id="searchHostCalculListCount" parameterType="hashmap" resultType="_int">
+	<![CDATA[
+ 	   SELECT COUNT(*) FROM (
+		    SELECT P.RESERVE_NO, SPACE_TITLE, M.MEM_NAME, PRICE, LAST_DAY(USE_DATE) LAST_DAY
+		    , TO_CHAR(USE_DATE,'YYYY-MM-DD') USE_DATE, PAY_METHOD, PAY_STATUS
+		    , CASE WHEN USE_DATE < SYSDATE
+		    AND TO_CHAR(SYSDATE,'YYYY-MM-DD') >  LAST_DAY(USE_DATE)
+		    THEN '완료'
+		    ELSE '예정'
+		    END CAL_STATUS
+		    FROM PAYMENT P
+		    JOIN RESERVE  R ON P.RESERVE_NO = R.RESERVE_NO
+		    JOIN MEMBER M ON R.MEM_NO = M.MEM_NO
+		    JOIN SPACE S ON S.SPACE_NO = R.SPACE_NO
+		    WHERE PAY_STATUS = 'N'
+		    AND HOST_NO = #{memNo}
+		    ORDER BY P.RESERVE_NO DESC)
+		WHERE PAY_STATUS = 'N'
+		]]>
+		<if test='!calStatus.equals("전체")'>
+		AND CAL_STATUS= #{calStatus}
+		</if>
+		<if test='!spaceTitle.equals("전체")'>
+		AND SPACE_TITLE = #{spaceTitle}
+		</if>
+		<![CDATA[
+		AND (USE_DATE >= #{sdate} AND USE_DATE <= #{edate})
+		]]>
+	</select>
+	
+	<!-- 	호스트 검색 정산 리스트-->
+	<select id="searchHostCalculList" parameterType="hashmap" resultMap="hostCalculListSet">
+	<![CDATA[
+	   SELECT * FROM (
+		    SELECT P.RESERVE_NO, SPACE_TITLE, M.MEM_NAME, PHONE, PRICE, TO_CHAR(LAST_DAY(USE_DATE),'YYYY-MM-DD') LAST_DAY
+		    , TO_CHAR(USE_DATE,'YYYY-MM-DD') USE_DATE, PAY_METHOD, PAY_STATUS, RESERVE_COUNT,START_TIME,END_TIME
+		    , CASE WHEN USE_DATE < SYSDATE
+		    AND TO_CHAR(SYSDATE,'YYYY-MM-DD') >  LAST_DAY(USE_DATE)
+		    THEN '완료'
+		    ELSE '예정'
+		    END CAL_STATUS
+		    FROM PAYMENT P
+		    JOIN RESERVE  R ON P.RESERVE_NO = R.RESERVE_NO
+		    JOIN MEMBER M ON R.MEM_NO = M.MEM_NO
+		    JOIN SPACE S ON S.SPACE_NO = R.SPACE_NO
+		    WHERE PAY_STATUS = 'N'
+		    AND HOST_NO = #{memNo}
+		    ORDER BY P.RESERVE_NO DESC)
+		WHERE PAY_STATUS = 'N'
+	]]>
+		<if test='!calStatus.equals("전체")'>
+		AND CAL_STATUS= #{calStatus}
+		</if>
+		<if test='!spaceTitle.equals("전체")'>
+		AND SPACE_TITLE = #{spaceTitle}
+		</if>
+	<![CDATA[
+		AND (USE_DATE >= #{sdate} AND USE_DATE <= #{edate})
+	]]>
+	</select>
+	
+	<!-- 	PAY_STATUS  취소로 업데이트 -->
+	<update id="updatePayment" parameterType="_int">
+		UPDATE PAYMENT
+	    SET PAY_STATUS = 'Y'
+		WHERE RESERVE_NO = #{rno}
+	</update>
+	
+	<!-- 정현 End -->
+	
+	<!-- 회원 등급 업데이트를 위한 결제 금액 SUM - 경미 -->
+	<select id="sumPrice" parameterType="_int" resultType="string">
+		SELECT SUM(PRICE)
+        FROM RESERVE
+        WHERE MEM_NO = #{memNo}
+        AND RESERVE_STATUS IN ('Y', 'W')
+	</select>
+	
+	
+	<select id="selectPayment" parameterType="_int" resultMap="paymentResultSet">
+		SELECT *
+		FROM PAYMENT
+		WHERE RESERVE_NO = #{reserveNo}
+	</select>
+	
+</mapper>

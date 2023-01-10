@@ -1,0 +1,546 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "mybatis-3-mapper.dtd" >
+<mapper namespace="commonMapper">
+
+	<!-- 메인화면 추천공간 -->
+	<resultMap id="spaceResultSet" type="space">
+		<result column="SPACE_NO" property="spaceNo" />
+		<result column="SPACE_TITLE" property="spaceTitle" />
+		<result column="HOUR_PRICE" property="hourPrice" />
+		<result column="MAX_PEOPLE" property="maxPeople" />
+		<result column="ADDRESS_DEFAULT" property="addressDefault" />
+		<result column="HASHTAG" property="hashtag" />
+		<result column="SPACE_STATUS" property="spaceStatus" />
+		<result column="REVIEW_NO" property="reviewNo" />
+		<result column="REVIEW_ATTACH1" property="reviewAttach1" />
+		<result column="REVIEW_CONT" property="reviewCont" />
+		<result column="RATING" property="rating" />
+		<result column="NICKNAME" property="nickName" />
+		<result column="PROFILE_PATH" property="profilePath" />
+		<result column="ATTACHMENT_RENAME" property="attachmentReName" />
+	</resultMap>
+	
+	<!-- 추천공간 -성훈 -->
+	<select id="spaceRecommend" parameterType="string" resultMap="spaceResultSet">
+	    SELECT S.SPACE_NO,
+	           SPACE_TITLE,
+	           HOUR_PRICE,
+	           HASHTAG,
+	           MAX_PEOPLE,
+	           ATTACHMENT_RENAME,
+	           SUBSTR((SUBSTR(ADDRESS_DEFAULT, 0, INSTR(ADDRESS_DEFAULT, ' ', 1, 2))),INSTR(ADDRESS_DEFAULT, ' ', 1)+1) ADDRESS_DEFAULT
+	      FROM SPACE S
+	      LEFT JOIN SPACE_ATTACHMENT A ON (S.SPACE_NO = A.SPACE_NO)
+	     WHERE SPACE_STATUS = 'Y'
+	       AND ATTACHMENT_LEVEL = 1
+	       AND HASHTAG LIKE '%'|| #{keyword} || '%'
+	       AND ROWNUM <![CDATA[<=]]> 9
+	     ORDER BY COUNT DESC
+	</select>
+	
+	<!-- 리뷰존 (최신순) -성훈 -->
+	<select id="spaceReview" resultMap="spaceResultSet">
+	  
+	    SELECT DISTINCT S.SPACE_NO,
+		       S.SPACE_TITLE,
+		       RV.REVIEW_ATTACH1,
+		       RV.REVIEW_CONT,
+		       RV.RATING,
+		       RV.REVIEW_NO,
+		       M.NICKNAME,
+		       M.PROFILE_PATH
+		  FROM SPACE S
+		  LEFT JOIN RESERVE RS ON (S.SPACE_NO = RS.SPACE_NO)
+		  LEFT JOIN REVIEW RV ON (RS.RESERVE_NO = RV.RESERVE_NO)
+		  LEFT JOIN MEMBER M ON (RV.MEM_NO = M.MEM_NO)
+		 WHERE SPACE_STATUS = 'Y'
+		   AND REVIEW_STATUS = 'N'
+		   AND ROWNUM <![CDATA[<=]]> 3
+		   AND REVIEW_ATTACH1 IS NOT NULL
+	  ORDER BY REVIEW_NO DESC
+	</select>
+	
+	
+
+	<!-- 신고관리 -->
+	<resultMap id="reportResultSet" type="report">
+		<result column="REPORT_NO" property="reportNo" />
+		<result column="REPORT_TYPE" property="reportType" />
+		<result column="REPORT_CONTENT" property="reportContent" />
+		<result column="REPORT_DATE" property="reportDate" />
+		<result column="REPORT_STATUS" property="reportStatus" />
+		<result column="REPORT_ANSWER" property="reportAnswer" />
+		
+		<result column="REPORTED_MEM_NO" property="reportedMemNo" />
+		<result column="REPORT_MEM_NO" property="reportMemNo" />
+	</resultMap>
+	
+	<!-- 매출관리  -->
+	<resultMap id="reserveResultSet" type="reserve" >
+		<result column="USE_DATE" property="useDate" />
+		<result column="PRICE" property="price" />
+		<result column="SPACE_NO" property="spaceNo" />
+		<result column="START_TIME" property="startTime" />
+		
+		<result column="MEM_NAME" property="memName" />
+		<result column="MEM_ID" property="memId" />
+		<result column="GENDER" property="gender" />
+		
+		<result column="SPACE_TITLE" property="spaceTitle" />
+		<result column="INCOME" property="income" />
+		<result column="SALES_STATUS" property="salesStatus" />
+		
+		<result column="chartPrice" property="chartPrice" />
+		<result column="chartMonth" property="chartMonth" />
+		
+		<result column="STYPE_NO" property="stypeNo" />
+		<result column="STYPE_NAME" property="stypeName" />
+		<result column="COUNT" property="count" />
+	</resultMap>
+	
+	<!-- 신고 글 총 개수 -->
+	<select id="selectReportListCount" parameterType="hashmap" resultType="_int">
+		SELECT COUNT(*)
+		FROM REPORT
+		<if test="tab == '전체 신고'">
+			WHERE REPORT_STATUS IN ('Y', 'N', 'D')
+		</if>
+		<if test="tab == '미처리 신고'">
+			WHERE REPORT_STATUS = 'N'
+		</if>
+		<if test="tab == '승인된 신고'">
+			WHERE REPORT_STATUS = 'Y'
+		</if>
+		<if test="tab == '반려된 신고'">
+			WHERE REPORT_STATUS = 'D'
+		</if>
+	</select>
+	
+	<!-- 신고 리스트 조회 -->
+	<select id="selectReportList" parameterType="hashmap" resultMap="reportResultSet">
+		SELECT REPORT_NO, MEM_ID AS "REPORTED_MEM_NO", REPORT_TYPE, REPORT_CONTENT, TO_CHAR(REPORT_DATE, 'YYYY-MM-DD') AS "REPORT_DATE", REPORT_STATUS
+		FROM REPORT 
+		JOIN MEMBER ON (REPORTED_MEM_NO = MEM_NO)
+		<if test="tab == '전체 신고'">
+			WHERE REPORT_STATUS IN ('Y', 'N', 'D')
+		</if>
+		<if test="tab == '미처리 신고'">
+			WHERE REPORT_STATUS = 'N'
+		</if>
+		<if test="tab == '승인된 신고'">
+			WHERE REPORT_STATUS = 'Y'
+		</if>
+		<if test="tab == '반려된 신고'">
+			WHERE REPORT_STATUS = 'D'
+		</if>
+		ORDER BY REPORT_NO DESC
+	</select> 
+	
+	<!-- 신고 상세조회 -->
+	<select id="selectReport" parameterType="_int" resultMap="reportResultSet">
+		SELECT REPORT_NO, M.MEM_ID AS "REPORT_MEM_NO", M2.MEM_ID AS "REPORTED_MEM_NO", REPORT_TYPE, REPORT_CONTENT, TO_CHAR(REPORT_DATE, 'YYYY-MM-DD') AS "REPORT_DATE", REPORT_STATUS, REPORT_ANSWER
+		FROM REPORT
+		JOIN MEMBER M ON (REPORT_MEM_NO = M.MEM_NO)
+		JOIN MEMBER M2 ON (REPORTED_MEM_NO = M2.MEM_NO)
+		WHERE REPORT_NO = #{reportNo}
+	</select>
+	
+	<!-- 신고 처리 (승인, 반려) -->
+	<update id="updateReport" parameterType="hashmap">
+		UPDATE REPORT
+		SET REPORT_STATUS = #{reportStatus}
+			, REPORT_ANSWER = #{reportAnswer}
+			, MODIFY_DATE = SYSDATE
+		WHERE REPORT_NO = #{reportNo}
+	</update>
+	
+	<!-- 블랙리스트 처리 -->
+	<update id="updateBlacklist" parameterType="report">
+		UPDATE MEMBER
+		SET BLACKLIST_YN = 'Y'
+		WHERE (SELECT COUNT(*) 
+		       FROM REPORT 
+		       LEFT JOIN MEMBER ON (REPORTED_MEM_NO = MEM_NO) 
+		       WHERE MEM_ID = #{reportedMemNo}
+		       AND MEM_STATUS = 'N' 
+		       AND REPORT_STATUS = 'Y') >= 5
+		  AND MEM_ID = #{reportedMemNo}
+	</update>
+	
+	<!-- 신고 검색 글 개수 -->
+	<select id="selectReportSearchListCount" parameterType="hashmap" resultType="_int">
+		SELECT COUNT(*)
+		FROM REPORT
+		JOIN MEMBER M ON (REPORT_MEM_NO = M.MEM_NO)
+		JOIN MEMBER M2 ON (REPORTED_MEM_NO = M2.MEM_NO)
+		WHERE REPORT_STATUS IN ('Y', 'N', 'D')
+		<if test="condition == 'reportedMem'">
+		    AND M2.MEM_ID
+		</if>
+		<if test="condition == 'reportMem'">
+		    AND M.MEM_ID
+		</if>
+		<if test="condition == 'reportContent'">
+		    AND REPORT_CONTENT
+		</if>
+		LIKE '%' || #{keyword} || '%'
+	</select>
+	
+	<!-- 신고 검색 리스트 조회 -->
+	<select id="selectReportSearchList" parameterType="hashmap" resultMap="reportResultSet">
+		SELECT REPORT_NO, M2.MEM_ID AS "REPORTED_MEM_NO", REPORT_TYPE, REPORT_CONTENT, TO_CHAR(REPORT_DATE, 'YYYY-MM-DD') AS "REPORT_DATE", REPORT_STATUS
+		FROM REPORT 
+		JOIN MEMBER M ON (REPORT_MEM_NO = M.MEM_NO)
+		JOIN MEMBER M2 ON (REPORTED_MEM_NO = M2.MEM_NO)
+		WHERE REPORT_STATUS IN ('Y', 'N', 'D')
+		<if test="condition == 'reportedMem'">
+		    AND M2.MEM_ID
+		</if>
+		<if test="condition == 'reportMem'">
+		    AND M.MEM_ID
+		</if>
+		<if test="condition == 'reportContent'">
+		    AND REPORT_CONTENT
+		</if>
+		LIKE '%' || #{keyword} || '%'
+		ORDER BY REPORT_NO DESC
+	</select>
+	
+	<!-- 매출이 있는 공간 총 개수 -->
+	<select id="selectSalesListCount" resultType="_int">
+		SELECT COUNT(*)
+		FROM (SELECT SPACE_NO
+		      FROM RESERVE
+		      WHERE EXTRACT(YEAR FROM USE_DATE)|| '-' || EXTRACT(MONTH FROM USE_DATE) = EXTRACT(YEAR FROM SYSDATE)|| '-' || EXTRACT(MONTH FROM SYSDATE)
+		      AND RESERVE_STATUS = 'Y'
+		      GROUP BY SPACE_NO)
+	</select>
+	
+	<!-- 매출이 있는 공간 리스트 조회 -->
+	<select id="selectSalesList" resultMap="reserveResultSet">
+		<![CDATA[
+		SELECT M.MEM_NAME, M.MEM_ID, SPACE_NO, S.SPACE_TITLE, (SUM(PRICE)*0.1) AS "PRICE"
+		FROM RESERVE R
+		JOIN SPACE S USING (SPACE_NO)
+		JOIN MEMBER M ON (M.MEM_NO = HOST_NO)
+		WHERE MEM_STATUS = 'N'
+		  AND EXTRACT(YEAR FROM USE_DATE)|| '-' || EXTRACT(MONTH FROM USE_DATE) = EXTRACT(YEAR FROM SYSDATE)|| '-' || EXTRACT(MONTH FROM SYSDATE)
+		  AND RESERVE_STATUS = 'Y'
+		GROUP BY SPACE_NO, MEM_NAME, MEM_ID, SPACE_TITLE
+		ORDER BY SPACE_NO DESC
+		]]>
+	</select>
+	
+	<!-- 공간별 매출 상세조회 (기본정보만)-->
+	<select id="selectSales" parameterType="hashmap" resultMap="reserveResultSet">
+		SELECT M.MEM_NAME, M.MEM_ID, GENDER, SPACE_NO, S.SPACE_TITLE, (SUM(R.PRICE)*0.1) AS "INCOME"
+		FROM RESERVE R
+		JOIN SPACE S USING (SPACE_NO)
+		JOIN MEMBER M ON (M.MEM_NO = HOST_NO)
+		WHERE SPACE_NO = #{spaceNo}
+		  AND TO_CHAR(R.USE_DATE, 'YYYY-MM') = #{month}
+		  AND RESERVE_STATUS = 'Y'
+		GROUP BY SPACE_NO, MEM_NAME, MEM_ID, GENDER, SPACE_TITLE
+	</select>
+	
+	<!-- 매출이 있는 공간의 상세 매출 총 개수 -->
+	<select id="selectSalesDetailCount" parameterType="hashmap" resultType="_int">
+		SELECT COUNT(*)
+		FROM RESERVE R
+		WHERE SPACE_NO = #{spaceNo}
+		  AND TO_CHAR(R.USE_DATE, 'YYYY-MM') = #{month}
+		  <![CDATA[AND (EXTRACT(YEAR FROM USE_DATE) <= EXTRACT(YEAR FROM SYSDATE)) AND (EXTRACT(MONTH FROM USE_DATE) <= EXTRACT(MONTH FROM SYSDATE))]]>
+		  AND RESERVE_STATUS = 'Y'
+	</select>
+	
+	<!-- 매출이 있는 공간의 상세 매출 조회 -->
+	<select id="selectSalesDetailList" parameterType="hashmap" resultMap="reserveResultSet">
+		SELECT TO_CHAR(USE_DATE, 'YYYY-MM-DD') AS "USE_DATE", START_TIME, R.PRICE, (R.PRICE*0.1) AS "INCOME"
+		FROM RESERVE R
+		WHERE SPACE_NO = #{spaceNo}
+		  AND TO_CHAR(USE_DATE, 'YYYY-MM') = #{month}
+		  AND RESERVE_STATUS = 'Y'
+		  <![CDATA[AND (EXTRACT(YEAR FROM USE_DATE) <= EXTRACT(YEAR FROM SYSDATE)) AND (EXTRACT(MONTH FROM USE_DATE) <= EXTRACT(MONTH FROM SYSDATE))]]>
+		ORDER BY USE_DATE ASC, START_TIME ASC
+	</select>
+	
+	<!-- 매출 검색 글 개수 -->
+	<select id="selectSalesSearchListCount" parameterType="hashmap" resultType="_int">
+		SELECT COUNT(*)
+		FROM (SELECT SPACE_NO
+			  FROM RESERVE
+			  JOIN SPACE USING (SPACE_NO)
+			  JOIN MEMBER M ON (M.MEM_NO = HOST_NO)
+			  WHERE MEM_STATUS = 'N'
+				AND TO_CHAR(USE_DATE, 'YYYY-MM') = #{month}
+				AND RESERVE_STATUS = 'Y'
+				<![CDATA[AND (EXTRACT(YEAR FROM USE_DATE) <= EXTRACT(YEAR FROM SYSDATE)) AND (EXTRACT(MONTH FROM USE_DATE) <= EXTRACT(MONTH FROM SYSDATE))]]>
+			  	<if test="condition == 'spaceTitle'">
+			    	AND SPACE_TITLE
+				</if>
+				<if test="condition == 'hostName'">
+				    AND M.MEM_NAME
+				</if>
+				<if test="condition == 'hostId'">
+				    AND M.MEM_ID
+				</if>
+				LIKE '%' || #{keyword} || '%'
+				GROUP BY SPACE_NO)
+	</select>
+	
+	<!-- 매출 검색 리스트 조회 -->
+	<select id="selectSalesSearchList" parameterType="hashmap" resultMap="reserveResultSet">
+		SELECT M.MEM_NAME, M.MEM_ID, SPACE_NO, S.SPACE_TITLE, (SUM(PRICE)*0.1) AS "PRICE"
+		FROM RESERVE R
+		JOIN SPACE S USING (SPACE_NO)
+		JOIN MEMBER M ON (M.MEM_NO = HOST_NO)
+		WHERE MEM_STATUS = 'N'
+		  AND TO_CHAR(USE_DATE, 'YYYY-MM') = #{month}
+		  <![CDATA[AND (EXTRACT(YEAR FROM USE_DATE) <= EXTRACT(YEAR FROM SYSDATE)) AND (EXTRACT(MONTH FROM USE_DATE) <= EXTRACT(MONTH FROM SYSDATE))]]>
+		  AND RESERVE_STATUS = 'Y'
+			<if test="condition == 'spaceTitle'">
+		    	AND SPACE_TITLE
+			</if>
+			<if test="condition == 'hostName'">
+			    AND M.MEM_NAME
+			</if>
+			<if test="condition == 'hostId'">
+			    AND M.MEM_ID
+			</if>
+			LIKE '%' || #{keyword} || '%'
+		GROUP BY SPACE_NO, MEM_NAME, MEM_ID, SPACE_TITLE
+		ORDER BY SPACE_NO DESC
+	</select>
+	
+	<!-- 매출차트 보드 조회 -->
+	<select id="selectSalesChartBoard" resultMap="reserveResultSet">
+		SELECT *
+		FROM (SELECT TO_CHAR(SUM(PRICE)*0.1, 'fm999,999,999,999') AS "todaySales", COUNT(*) AS "todaySalesCount"
+	          FROM RESERVE
+	          WHERE RESERVE_STATUS = 'Y' 
+	            AND TO_CHAR(USE_DATE, 'YYYY-MM-DD') = TO_CHAR(SYSDATE, 'YYYY-MM-DD')) today,
+	        
+	          -- 이번주 매출 
+	          (SELECT TO_CHAR(SUM(PRICE)*0.1, 'fm999,999,999,999') AS "weekSales", COUNT(*) AS "weekSalesCount"
+	          FROM RESERVE
+	          WHERE RESERVE_STATUS = 'Y' 
+	            AND USE_DATE <![CDATA[>=]]> TRUNC(NEXT_DAY(SYSDATE-8,1)+1) 
+	            AND USE_DATE <![CDATA[<]]> TRUNC(NEXT_DAY(SYSDATE-8,1)+7)+1) week, 
+	        
+	          -- 한달 매출 
+	          (SELECT TO_CHAR(SUM(PRICE)*0.1, 'fm999,999,999,999') AS "monthSales", COUNT(*) AS "monthSalesCount"
+	          FROM RESERVE
+	          WHERE RESERVE_STATUS = 'Y' 
+	            AND TO_CHAR(USE_DATE,'YYYY-MM')=TO_CHAR(SYSDATE,'YYYY-MM')) month,
+	       
+	          -- 1년 매출 
+	          (SELECT TO_CHAR(SUM(PRICE)*0.1, 'fm999,999,999,999') AS "yearSales", COUNT(*) AS "yearSalesCount"
+	          FROM RESERVE
+	          WHERE RESERVE_STATUS = 'Y' 
+	            AND TO_CHAR(USE_DATE,'YYYY')=TO_CHAR(SYSDATE,'YYYY')) year
+	</select>
+    
+    <!-- 매출 bar 차트 조회 -->
+    <select id="selectbChart" resultMap="reserveResultSet">
+		SELECT *
+		FROM (SELECT TO_CHAR(USE_DATE, 'YYYY-MM') chartMonth,
+		             SUM(CASE WHEN USE_DATE LIKE '22/%' THEN PRICE END)*0.1 chartPrice
+		      FROM RESERVE
+		      WHERE RESERVE_STATUS = 'Y'
+		       <![CDATA[AND (EXTRACT(YEAR FROM USE_DATE) <= EXTRACT(YEAR FROM SYSDATE)) AND (EXTRACT(MONTH FROM USE_DATE) <= EXTRACT(MONTH FROM SYSDATE))]]>
+		      GROUP BY TO_CHAR(USE_DATE, 'YYYY-MM')
+		      ORDER BY TO_CHAR(USE_DATE, 'YYYY-MM') DESC)
+		WHERE ROWNUM IN (1, 2, 3, 4, 5, 6)
+		ORDER BY chartMonth ASC
+    </select>
+    
+    <!-- 매출 doughnut 차트 조회 -->
+    <select id="selectdChart" resultMap="reserveResultSet">
+		SELECT *
+		FROM (SELECT COUNT(STYPE_NO) COUNT, STYPE_NAME, STYPE_NO
+		      FROM RESERVE R
+		      JOIN SPACE S ON R.SPACE_NO = S.SPACE_NO
+		      LEFT JOIN STYPE  USING(STYPE_NO)
+		      WHERE TO_CHAR(USE_DATE, 'YYYY-MM') = TO_CHAR(SYSDATE, 'YYYY-MM')
+		        AND RESERVE_STATUS = 'Y' 
+		      GROUP BY STYPE_NO, STYPE_NAME) K
+		RIGHT JOIN STYPE USING(STYPE_NO)
+		ORDER BY STYPE_NO
+    </select>
+
+		<!-- 검색어 자동완성 -성훈 -->
+	<select id="keywordAutoComplete" parameterType="string" resultType="string">
+		SELECT LISTAGG(SPACE_TITLE, ',' ON OVERFLOW TRUNCATE) WITHIN GROUP (ORDER BY SPACE_TITLE DESC) AS TITLES
+		 FROM SPACE
+		 WHERE SPACE_TITLE LIKE '%' || #{keyword} || '%'
+	 </select>
+	 
+	<!-- 검색어 자동완성 -성훈 -->
+	<select id="autoComplete" parameterType="hashmap" resultType="string">
+		SELECT LISTAGG(SPACE_TITLE, ',' ON OVERFLOW TRUNCATE) WITHIN GROUP (ORDER BY SPACE_TITLE DESC) AS TITLES
+		 FROM SPACE
+		 WHERE SPACE_TITLE LIKE '%' || #{keyword} || '%' 
+	 </select>
+	 
+	 <!-- 검색어 자동완성 수정 - 경미 -->
+<!-- 	<select id="autoComplete" parameterType="hashmap" resultType="string">
+		SELECT SUBSTR(LISTAGG(SPACE_TITLE, ',') WITHIN GROUP (ORDER BY SPACE_TITLE DESC), 0, INSTR(LISTAGG(SPACE_TITLE, ',') WITHIN GROUP (ORDER BY SPACE_TITLE DESC), ',',1,5)-1) AS TITLES
+		 FROM SPACE
+		 WHERE SPACE_TITLE LIKE '%' || #{keyword} || '%'
+	</select> -->
+	
+	<!-- 해시태그 자동완성 -성훈 -->
+	<select id="hashtagAutoComplete" parameterType="string" resultType="string">
+		SELECT LISTAGG(HASHTAG, ',' ON OVERFLOW TRUNCATE) WITHIN GROUP (ORDER BY HASHTAG DESC) AS TAGS
+		  FROM SPACE
+		 WHERE HASHTAG LIKE '%' || #{keyword} || '%'
+	</select>
+	
+	<!-- 마이페이지 신고리스트 신희섭 -->
+	<select id="selectMypageReportListCount" parameterType="_int" resultType="_int">
+		SELECT COUNT(*)
+		FROM REPORT
+	</select>
+	
+	<select id="selectMypageReportList" parameterType="_int" resultMap="reportResultSet">
+		SELECT REPORT_NO
+			, REPORT_TYPE
+			, TO_CHAR(REPORT_DATE, 'YYYY-MM-DD') AS "REPORT_DATE"
+			, REPORT_STATUS
+			, REPORT_MEM_NO 
+			, REPORT_CONTENT
+			, REPORT_ANSWER
+		FROM REPORT	 
+		WHERE REPORT_MEM_NO = #{reportMemNo}
+		ORDER BY REPORT_NO DESC
+	</select>
+	
+	
+	<!-- 정현 Start-->
+	<!-- 채팅방 -->
+	<resultMap id="chatListSet" type="chatting" >
+		<result column="CHAT_NO" property="chatNo" />
+		<result column="MESSAGE" property="message" />
+		<result column="MESSAGE_DATE" property="messageDate" />
+		<result column="SENDER" property="sender" />
+		<result column="RECEIVER" property="receiver" />
+		<result column="ROOM_NO" property="roomNo" />
+		<result column="SNAME" property="senderName" />
+		<result column="RNAME" property="receiverName" />
+		<result column="SPROFILE" property="senderProfilePath" />
+		<result column="RPROFILE" property="receiverProfilePath" />
+		<result column="SMEMID" property="senderId" />
+		<result column="RMEMID" property="receiverId" />
+	</resultMap>
+	
+	<!-- 	나의 쪽지함 리스트-->
+	<select id="selectNoteList" parameterType="_int" resultMap="chatListSet">
+	   SELECT CHAT_NO, MESSAGE
+	   , TO_CHAR(MESSAGE_DATE, 'MM-DD HH24:MI') AS MESSAGE_DATE
+	   , SENDER, RECEIVER, ROOM_NO
+	   , M.MEM_NAME AS SNAME
+	   , L.MEM_NAME AS RNAME
+	   , M.PROFILE_PATH AS SPROFILE
+	   , L.PROFILE_PATH AS RPROFILE
+	   , M.MEM_ID AS SMEMID
+	   , L.MEM_ID AS RMEMID
+       FROM CHATTING C
+       JOIN MEMBER M ON C.SENDER = M.MEM_NO
+       JOIN MEMBER L ON C.RECEIVER = L.MEM_NO
+       WHERE CHAT_NO IN (
+           SELECT MAX(CHAT_NO)
+           FROM CHATTING
+           WHERE (RECEIVER = #{memNo}
+      	   OR SENDER = #{memNo})
+           GROUP BY ROOM_NO
+       )
+       ORDER BY CHAT_NO DESC
+	</select>
+	
+	
+	<!-- 	나의 쪽지함 검색  리스트-->
+	<select id="searchNoteList" parameterType="hashmap" resultMap="chatListSet">
+       SELECT CHAT_NO, MESSAGE
+	   , TO_CHAR(MESSAGE_DATE, 'MM-DD HH24:MI') AS MESSAGE_DATE
+	   , SENDER , RECEIVER, ROOM_NO
+	   , M.MEM_NAME AS SNAME
+	   , L.MEM_NAME AS RNAME
+	   , M.PROFILE_PATH AS SPROFILE
+	   , L.PROFILE_PATH AS RPROFILE
+	   , M.MEM_ID AS SMEMID
+	   , L.MEM_ID AS RMEMID
+	   , ROOM_NO
+       FROM CHATTING C
+       JOIN MEMBER M ON C.SENDER = M.MEM_NO
+       JOIN MEMBER L ON C.RECEIVER = L.MEM_NO
+       WHERE CHAT_NO IN (
+           SELECT MAX(CHAT_NO)
+           FROM CHATTING
+           WHERE (RECEIVER = #{memNo}
+      	   OR SENDER = #{memNo})
+           GROUP BY ROOM_NO
+       )
+       AND (M.MEM_NAME LIKE '%' || #{keyword} || '%'
+       OR L.MEM_NAME LIKE '%' || #{keyword} || '%')
+       ORDER BY CHAT_NO DESC
+       
+	</select>
+	
+	<!-- 	채팅 상세 뷰-->
+	<select id="selectChatList" parameterType="chatting" resultMap="chatListSet">
+	   SELECT CHAT_NO, MESSAGE
+       , TO_CHAR(MESSAGE_DATE, 'MM-DD HH24:MI') AS MESSAGE_DATE 
+       , SENDER
+       , M.MEM_NAME AS SNAME
+	   , M.PROFILE_PATH AS SPROFILE
+	   , ROOM_NO
+       FROM CHATTING C
+       JOIN MEMBER M ON C.SENDER = M.MEM_NO
+       WHERE (RECEIVER = #{receiver}
+       AND SENDER = #{sender}) OR 
+       (RECEIVER = #{sender}
+       AND SENDER = #{receiver})
+       ORDER BY CHAT_NO ASC
+	</select>
+	
+	<insert id="insertChat" parameterType="chatting">
+		<choose>
+		<when test='roomNo != ""'>
+		INSERT INTO CHATTING
+		VALUES(SEQ_CNO.NEXTVAL
+			     , #{message}
+			     , SYSDATE
+			     , #{sender}
+			     , #{receiver}
+			     , #{roomNo})
+		</when>
+		<otherwise>
+		INSERT INTO CHATTING
+		VALUES(SEQ_CNO.NEXTVAL
+			     , #{message}
+			     , SYSDATE
+			     , #{sender}
+			     , #{receiver}
+			     , SEQ_RONO.NEXTVAL)
+		</otherwise>
+		</choose>
+	</insert>
+	
+	<!-- 	방금 보낸 채팅 선택 -->
+	<select id="selectChat" parameterType="chatting" resultMap="chatListSet">
+	   SELECT * 
+	   FROM(
+	   SELECT MESSAGE
+       , TO_CHAR(MESSAGE_DATE, 'MM-DD HH24:MI') AS MESSAGE_DATE 
+       , ROOM_NO
+       FROM CHATTING C
+       WHERE RECEIVER = #{receiver}
+       AND SENDER = #{sender}
+       ORDER BY CHAT_NO DESC
+       ) WHERE ROWNUM = 1
+	</select>
+	<!-- 정현 End-->
+	
+	
+	
+</mapper>

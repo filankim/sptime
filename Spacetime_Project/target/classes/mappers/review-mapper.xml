@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "mybatis-3-mapper.dtd" >
+<mapper namespace="reviewMapper">
+
+	<resultMap id="reviewResultSet" type="review">
+		<result column="RESERVE_NO" property="reserveNo" />
+		<result column="SPACE_TITLE" property="spaceTitle" />
+		<result column="REVIEW_CONT" property="reviewCont" />
+		<result column="RATING" property="rating" />
+		<result column="REVIEW_ENROLL_DATE" property="reviewEnrollDate" />
+		<result column="REVIEW_NO" property="reviewNo" />
+		<result column="REVIEW_ATTACH1" property="reviewAttach1" />
+		<result column="REVIEW_ATTACH2" property="reviewAttach2" />
+		<result column="REVIEW_ATTACH3" property="reviewAttach3" />
+		<result column="HOST_ANSWER" property="hostAnswer" />
+	</resultMap>
+	<!-- 리스트조회 -->
+	<select id="selectListCount" parameterType="_int" resultType="_int">
+		SELECT COUNT(*)
+		FROM REVIEW
+		WHERE REVIEW_STATUS = 'N'
+		  AND MEM_NO = #{memNo}
+	</select>
+	
+	<select id="selectList" parameterType="_int" resultMap="reviewResultSet">
+		SELECT
+		A.REVIEW_NO
+		, C.RESERVE_NO
+		, B.SPACE_TITLE
+		, A.REVIEW_CONT
+		, A.RATING
+		, TO_CHAR(A.REVIEW_ENROLL_DATE, 'YYYY-MM-DD') AS REVIEW_ENROLL_DATE
+		FROM 
+		REVIEW A
+		INNER JOIN RESERVE C ON A.RESERVE_NO = C.RESERVE_NO
+		INNER JOIN SPACE B ON B.SPACE_NO = C.SPACE_NO
+		WHERE A.MEM_NO = #{memNo}
+		AND REVIEW_STATUS = 'N'
+		ORDER BY REVIEW_NO DESC
+	</select>
+	
+	<!--상세페이지-->
+	<select id="selectReview" parameterType="_int" resultMap="reviewResultSet"> 
+		SELECT 
+		A.REVIEW_NO AS "REVIEW_NO"
+		, B.SPACE_TITLE --공간명
+		, A.RATING --평점
+		, TO_CHAR(A.REVIEW_ENROLL_DATE, 'YYYY-MM-DD') AS REVIEW_ENROLL_DATE --등록일
+		, A.REVIEW_CONT --내용
+		, A.REVIEW_ATTACH1
+		, A.REVIEW_ATTACH2
+		, A.REVIEW_ATTACH3
+		, A.HOST_ANSWER
+		FROM REVIEW A
+		JOIN RESERVE C
+		ON A.RESERVE_NO = C.RESERVE_NO
+		
+		INNER JOIN SPACE B
+		ON C.SPACE_NO = B.SPACE_NO
+		WHERE
+		A.Review_No = #{reviewNo}
+	</select>  
+	
+	<!-- 삭제 -->
+	<update id="deleteReview" parameterType="_int">
+		UPDATE REVIEW
+		   SET REVIEW_STATUS = 'Y'
+		 WHERE REVIEW_NO = #{reviewNo}
+	</update>
+	
+	<!-- 업데이트 -->
+	<update id="updateReview" parameterType="review">
+		UPDATE REVIEW
+		   SET 
+		      RATING = #{rating}
+		      ,REVIEW_CONT = #{reviewCont}
+		      , REVIEW_ATTACH1 = #{reviewAttach1}
+		      , REVIEW_ATTACH2 = #{reviewAttach2}
+		      , REVIEW_ATTACH3 = #{reviewAttach3}
+		 WHERE REVIEW_NO = #{reviewNo}
+	</update>
+	
+	<!-- 	정현 start -->
+	<!-- 	호스트 나의 소유 공간 리스트 set  -->
+	<resultMap id="spaceTitleSet" type="space">
+		<result column="SPACE_NO" property="spaceNo" />
+		<result column="SPACE_TITLE" property="spaceTitle" />
+	</resultMap>
+	
+	<resultMap id="hostReviewListSet" type="review">
+		<result column="REVIEW_NO" property="reviewNo" />
+		<result column="REVIEW_CONT" property="reviewCont" />
+		<result column="REVIEW_ENROLL_DATE" property="reviewEnrollDate" />
+		<result column="RATING" property="rating" />
+		<result column="REVIEW_ATTACH1" property="reviewAttach1" />
+		<result column="REVIEW_ATTACH2" property="reviewAttach2" />
+		<result column="REVIEW_ATTACH3" property="reviewAttach3" />
+		<result column="HOST_ANSWER" property="hostAnswer" />
+		<result column="RESERVE_NO" property="reserveNo" />
+		<result column="MEM_NO" property="memNo" />
+		<collection property="space" ofType="space" >
+			<result column="SPACE_TITLE" property="spaceTitle" />
+		</collection>
+		<collection  property="member" ofType="member" >
+			<result column="MEM_NAME" property="memName" />
+		</collection>
+	</resultMap>	
+
+	<!-- 	공간 타입 리스트 전체 선택 -->
+	<select id="selectMySpaceList" parameterType="_int" resultMap="spaceTitleSet">
+		SELECT SPACE_NO, SPACE_TITLE
+		FROM SPACE
+		WHERE HOST_NO = #{memNo}
+	</select>
+
+	<!-- 	사용자 이용후기 등록 -->
+	<insert id="insertReview" parameterType="review">
+		INSERT INTO REVIEW 
+		VALUES (SEQ_RVNO.NEXTVAL
+				, #{reviewCont}
+				, SYSDATE
+				, #{rating}
+				, 'N'
+				, #{reviewAttach1}
+				, #{reviewAttach2}
+				, #{reviewAttach3}
+				, null
+				, #{reserveNo}
+				, #{memNo})
+	</insert>
+
+	<!-- 호스트 이용후기 관리 리스트  개수 -->
+	<select id="selectHostReviewListCount" parameterType="_int" resultType="_int">    
+      SELECT COUNT(*)
+       FROM (
+       SELECT REVIEW_NO
+       FROM REVIEW R
+       JOIN MEMBER M ON R.MEM_NO = M.MEM_NO
+       JOIN RESERVE V ON R.RESERVE_NO = V.RESERVE_NO
+       JOIN SPACE S ON V.SPACE_NO = S.SPACE_NO
+       WHERE S.SPACE_NO IN (
+                    SELECT SPACE_NO
+                    FROM SPACE
+                    WHERE HOST_NO = #{memNo})
+     AND REVIEW_STATUS = 'N'
+      )
+      
+	</select>
+	<!-- 	호스트 이용후기 관리 리스트-->
+	<select id="selectHostReviewList" parameterType="_int" resultMap="hostReviewListSet">
+	   SELECT  REVIEW_NO
+	   			, REVIEW_CONT
+                , TO_CHAR(REVIEW_ENROLL_DATE, 'YYYY-MM-DD HH24:MI:SS') AS REVIEW_ENROLL_DATE
+                , RATING
+                , REVIEW_ATTACH1
+                , REVIEW_ATTACH2
+                , REVIEW_ATTACH3
+                , HOST_ANSWER
+                , M.MEM_NAME
+                , S.SPACE_TITLE
+                , V.RESERVE_NO
+                , R.MEM_NO
+       FROM REVIEW R
+       JOIN MEMBER M ON R.MEM_NO = M.MEM_NO
+       JOIN RESERVE V ON R.RESERVE_NO = V.RESERVE_NO
+       JOIN SPACE S ON V.SPACE_NO = S.SPACE_NO
+       WHERE S.SPACE_NO IN (
+                    SELECT SPACE_NO
+                    FROM SPACE
+                    WHERE HOST_NO = #{memNo}
+       ) AND REVIEW_STATUS = 'N' ORDER BY REVIEW_NO DESC
+	</select>
+	<!-- 호스트 검색 이용후기 관리 리스트  개수 -->
+	<select id="searchHostReviewListCount" parameterType="hashmap" resultType="_int">
+	
+  	   SELECT COUNT(*)
+       FROM (
+       SELECT REVIEW_NO
+       FROM REVIEW R
+       JOIN MEMBER M ON R.MEM_NO = M.MEM_NO
+       JOIN RESERVE V ON R.RESERVE_NO = V.RESERVE_NO
+       JOIN SPACE S ON V.SPACE_NO = S.SPACE_NO
+       WHERE S.SPACE_NO IN (
+                    SELECT SPACE_NO
+                    FROM SPACE
+                    WHERE HOST_NO = #{memNo})
+      AND REVIEW_STATUS = 'N'
+	<if test='!spaceTitle.equals("공간 전체")'>
+	AND S.SPACE_TITLE = #{spaceTitle}
+	</if>
+	<if test='hostAnswer.equals("답글 있음")'>
+	AND HOST_ANSWER IS NOT NULL
+	</if>
+	<if test='hostAnswer.equals("답글 없음")'>
+	AND HOST_ANSWER IS NULL
+	</if>
+     	AND (M.MEM_NAME LIKE '%' || #{keyword} || '%'
+       OR  V.RESERVE_NO LIKE '%' || #{keyword} || '%'))
+       
+	</select>
+	<!-- 	호스트 검색 이용후기 관리 리스트-->
+	<select id="searchHostReviewList" parameterType="hashmap" resultMap="hostReviewListSet">
+	SELECT  REVIEW_NO
+	   			, REVIEW_CONT
+                , TO_CHAR(REVIEW_ENROLL_DATE, 'YYYY-MM-DD HH24:MI:SS') AS REVIEW_ENROLL_DATE
+                , RATING
+                , REVIEW_ATTACH1
+                , REVIEW_ATTACH2
+                , REVIEW_ATTACH3
+                , HOST_ANSWER
+                , M.MEM_NAME
+                , S.SPACE_TITLE
+                , V.RESERVE_NO
+       FROM REVIEW R
+       JOIN MEMBER M ON R.MEM_NO = M.MEM_NO
+       JOIN RESERVE V ON R.RESERVE_NO = V.RESERVE_NO
+       JOIN SPACE S ON V.SPACE_NO = S.SPACE_NO
+       WHERE S.SPACE_NO IN (
+                    SELECT SPACE_NO
+                    FROM SPACE
+                    WHERE HOST_NO = #{memNo}
+       ) AND REVIEW_STATUS = 'N'
+       <if test='!spaceTitle.equals("공간 전체")'>
+		AND S.SPACE_TITLE = #{spaceTitle}
+		</if>
+		<if test='hostAnswer.equals("답글 있음")'>
+		AND HOST_ANSWER IS NOT NULL
+		</if>
+		<if test='hostAnswer.equals("답글 없음")'>
+		AND HOST_ANSWER IS NULL
+		</if>
+       AND (M.MEM_NAME LIKE '%' || #{keyword} || '%'
+        OR  V.RESERVE_NO LIKE '%' || #{keyword} || '%')
+        ORDER BY REVIEW_NO DESC
+	</select>
+	
+	<!-- 	호스트 이용후기 답글 등록 및 삭제 -->
+	<update id="insertReviewAnswer" parameterType="review">
+		UPDATE REVIEW
+	    SET HOST_ANSWER = #{hostAnswer}
+		 WHERE REVIEW_NO = #{reviewNo}
+	</update>
+	<insert id="insertReviewLike" parameterType="reviewLike">
+		INSERT INTO REVIEW_LIKE 
+		VALUES (#{reviewNo}, #{memNo})
+	</insert>
+	<delete id="deleteReviewLike" parameterType="reviewLike">
+		DELETE FROM REVIEW_LIKE
+		WHERE REVIEW_NO = #{reviewNo}
+		AND MEM_NO = #{memNo}
+	</delete>
+	
+	<insert id="insertReport" parameterType="report">
+		INSERT INTO REPORT
+		VALUES(SEQ_RPNO.NEXTVAL
+			     , #{reportType}
+			     , #{reportContent}
+			     , SYSDATE
+			     , 'N'
+			     , null
+			     , null
+			     , #{reportMemNo}
+			     , #{reportedMemNo})
+	</insert>
+	
+	<select id="countReport" parameterType="report" resultType="_int">
+		SELECT COUNT(*)
+		FROM REPORT
+		WHERE REPORT_MEM_NO = #{reportMemNo}
+		AND REPORTED_MEM_NO = #{reportedMemNo}
+		AND  TO_CHAR(REPORT_DATE, 'YYYY-MM-DD') = TO_CHAR(SYSDATE, 'YYYY-MM-DD')
+	</select>
+	
+	<!-- 정현 End -->
+	
+	
+</mapper>

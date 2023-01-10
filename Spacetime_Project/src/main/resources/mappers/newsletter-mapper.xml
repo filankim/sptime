@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "mybatis-3-mapper.dtd" >
+<mapper namespace="newsletterMapper">
+	
+	<resultMap id="newsletterResultSet" type="newsletter">
+		<result column="NEWS_NO" property="newsNo" />
+		<result column="NEWS_TITLE" property="newsTitle" />
+		<result column="NEWS_CONTENT" property="newsCont" />
+		<result column="NEWS_ENROLL_DATE" property="newsEnrollDate" />
+		<result column="NEWS_STATUS" property="newsStatus" />
+		<result column="NEWS_THUMBNAIL" property="newsThumbnail" />
+		<result column="NEWS_KEYWORD" property="newsKeyword" />
+	</resultMap>
+	
+	<!-- 뉴스레터 전체 리스트 조회용 쿼리문 - 경미 -->
+	<select id="selectList" resultMap="newsletterResultSet">
+		SELECT NEWS_NO, NEWS_TITLE, NEWS_CONTENT, NEWS_ENROLL_DATE, NEWS_THUMBNAIL, NEWS_KEYWORD
+		  FROM NEWSLETTER
+		 WHERE NEWS_STATUS = 'N'
+		ORDER BY NEWS_NO DESC
+	</select>
+	
+	<!-- 뉴스레터 상세조회용 쿼리문 - 경미 -->
+	<select id="selectNewsletter" parameterType="_int" resultMap="newsletterResultSet">
+		SELECT *
+		  FROM NEWSLETTER
+		 WHERE NEWS_STATUS = 'N'
+		   AND NEWS_NO = #{newsNo}
+	</select>
+	
+	<!-- 뉴스레터 작성용 쿼리문 - 경미 -->
+	<insert id="insertNewsletter" parameterType="newsletter">
+		INSERT INTO NEWSLETTER (NEWS_NO, NEWS_TITLE, NEWS_CONTENT, NEWS_THUMBNAIL, NEWS_KEYWORD)
+		VALUES (SEQ_NLNO.NEXTVAL, #{newsTitle}, #{newsCont}, #{newsThumbnail}, #{newsKeyword})
+	</insert>
+	
+	<!-- 뉴스레터 수정용 쿼리문 - 경미 -->
+	<update id="updateNewsletter" parameterType="Newsletter">
+		UPDATE NEWSLETTER
+		   SET NEWS_TITLE = #{newsTitle}
+		     , NEWS_CONTENT = #{newsCont}
+		     , NEWS_THUMBNAIL = #{newsThumbnail}
+		     , NEWS_KEYWORD = #{newsKeyword}
+		 WHERE NEWS_NO = #{newsNo}
+		   AND NEWS_STATUS = 'N'
+	</update>
+	
+	<!-- 뉴스레터 삭제용 쿼리문 - 경미 -->
+	<update id="deleteNewsletter" parameterType="_int">
+		UPDATE NEWSLETTER
+		   SET NEWS_STATUS = 'Y'
+		 WHERE NEWS_NO = #{newsNo}
+	</update>
+</mapper>

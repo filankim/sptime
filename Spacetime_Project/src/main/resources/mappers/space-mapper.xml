@@ -1,0 +1,578 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "mybatis-3-mapper.dtd" >
+<mapper namespace="spaceMapper">
+
+	<resultMap id="spaceTypeResultSet" type="spaceType">
+		<result column="STYPE_NO" property="stypeNo" />
+		<result column="STYPE_NAME" property="stypeName" />
+	</resultMap>
+	
+	<resultMap id="spaceResultSet" type="space">
+		<result column="SPACE_NO" property="spaceNo" />
+		<result column="SPACE_TITLE" property="spaceTitle" />
+		<result column="SPACE_SUBTITLE" property="spaceSubTitle" />
+		<result column="SPACE_INFO" property="spaceInfo" />
+		<result column="HOUR_PRICE" property="hourPrice" />
+		<result column="MAX_PEOPLE" property="maxPeople" />
+		<result column="ADDRESS_DEFAULT" property="addressDefault" />
+		<result column="ADDRESS_DETAIL" property="addressDetail" />
+		<result column="TEL" property="tel" />
+		<result column="HASHTAG" property="hashtag" />
+		<result column="SPACE_STATUS" property="spaceStatus" />
+		<result column="COUNT" property="count" />
+		<result column="LATITUDE" property="latitude" />
+		<result column="LONGITUDE" property="longitude" />
+		<result column="OPEN_TIME" property="openTime" />
+		<result column="CLOSE_TIME" property="closeTime" />
+		<result column="DENY_MESSAGE" property="denyMessage" />
+		<result column="HOST_NO" property="hostNo" />
+		<result column="STYPE_NO" property="stypeNo" />
+		<result column="BOOKMARK_MEM" property="bookmarkMem" />
+		<result column="RATING" property="rating" />
+		<result column="MEM_NAME" property="memName" />
+		<result column="MEM_ID" property="memId" />
+		<collection resultMap="spaceAttachmentResultSet" property="attachments" />
+	</resultMap>
+	
+	<resultMap id="spaceRset" type="space">
+		<result column="SPACE_NO" property="spaceNo" />
+		<result column="SPACE_TITLE" property="spaceTitle" />
+		<result column="SPACE_SUBTITLE" property="spaceSubTitle" />
+		<result column="SPACE_INFO" property="spaceInfo" />
+		<result column="HOUR_PRICE" property="hourPrice" />
+		<result column="MAX_PEOPLE" property="maxPeople" />
+		<result column="ADDRESS_DEFAULT" property="addressDefault" />
+		<result column="ADDRESS_DETAIL" property="addressDetail" />
+		<result column="TEL" property="tel" />
+		<result column="HASHTAG" property="hashtag" />
+		<result column="SPACE_STATUS" property="spaceStatus" />
+		<result column="COUNT" property="count" />
+		<result column="LATITUDE" property="latitude" />
+		<result column="LONGITUDE" property="longitude" />
+		<result column="OPEN_TIME" property="openTime" />
+		<result column="CLOSE_TIME" property="closeTime" />
+		<result column="DENY_MESSAGE" property="denyMessage" />
+		<result column="HOST_NO" property="hostNo" />
+		<result column="STYPE_NO" property="stypeNo" />
+	</resultMap>
+	
+	<resultMap id="spaceAttachmentResultSet" type="spaceAttachment">
+		<result column="ATTACHMENT_NO" property="attachmentNo" />
+		<result column="ATTACHMENT_RENAME" property="attachmentReName" />
+		<result column="ATTACHMENT_UPLOAD_DATE" property="attachmentUploadDate" />
+		<result column="ATTACHMENT_STATUS" property="attachmentStatus" />
+		<result column="ATTACHMENT_LEVEL" property="attachmentLevel" />
+		<result column="SPACE_NO" property="spaceNo" />
+	</resultMap>
+	
+	<resultMap id="reviewResultSet" type="review">
+		<result column="REVIEW_NO" property="reviewNo" />
+		<result column="REVIEW_CONT" property="reviewCont" />
+		<result column="REVIEW_ENROLL_DATE" property="reviewEnrollDate" />
+		<result column="RATING" property="rating" />
+		<result column="REVIEW_ATTACH1" property="reviewAttach1" />
+		<result column="REVIEW_ATTACH2" property="reviewAttach2" />
+		<result column="REVIEW_ATTACH3" property="reviewAttach3" />
+		<result column="HOST_ANSWER" property="hostAnswer" />
+		<result column="RESERVE_NO" property="reserveNo" />
+		<result column="MEM_NO" property="memNo" />
+		<collection  property="member" ofType="member" >
+			<result column="MEM_NAME" property="memName" />
+			<result column="MPROFILE" property="profilePath" />
+			<result column="HPROFILE" property="hostStatus" />
+		</collection>
+		<collection  property="reviewLike" ofType="reviewLike" >
+			<result column="COUNT" property="reviewNo" />
+			<result column="LCOUNT" property="memNo" />
+		</collection>
+	</resultMap>
+	
+	<!-- 	정현 start -->
+	<!-- 	호스트 공간 개수 -->
+	<select id="selectHostSpaceListCount" parameterType="_int" resultType="_int">
+		SELECT COUNT(*)
+		FROM SPACE
+		WHERE HOST_NO = #{memNo}
+	</select>
+	<!-- 	호스트 공간 리스트 -->
+	<select id="selectHostSpaceList" parameterType="_int" resultMap="spaceResultSet">
+		SELECT SPACE_NO
+			 , SPACE_TITLE
+			 , HOUR_PRICE
+			 , ADDRESS_DEFAULT
+			 , SPACE_STATUS
+			 , DENY_MESSAGE
+		FROM SPACE
+		WHERE HOST_NO = #{memNo}
+		ORDER BY SPACE_MODIFY_DATE DESC, SPACE_NO DESC
+	</select>
+	
+	<!-- 	공간 타입 리스트 전체 선택 -->
+	<select id="selectSpaceTypeList" resultMap="spaceTypeResultSet">
+		SELECT *
+		FROM STYPE			
+	</select>
+	
+	<!-- 공간 첨부파일 추가 -->
+	<insert id="insertSpaceAttachment" parameterType="java.util.List">
+	insert INTO SPACE_ATTACHMENT(ATTACHMENT_NO
+										 , ATTACHMENT_RENAME
+										 , ATTACHMENT_LEVEL
+										 , SPACE_NO)
+	SELECT SEQ_ANO.NEXTVAL, A.* from(
+	 <foreach item="attachList" collection="list" separator="UNION ALL " >
+	   SELECT #{attachList.attachmentReName} AS ATTACHMENT_RENAME,
+	          #{attachList.attachmentLevel} AS ATTACHMENT_LEVEL,
+	          #{attachList.spaceNo} AS SPACE_NO
+	   FROM DUAL
+	 </foreach>) A
+	</insert>
+<!-- 	정현 -->
+<!-- 	<insert  id="insertSpaceAttachment2" parameterType="java.util.List"> -->
+<!-- 	<foreach collection="list" item="attachList" open="INSERT ALL" close="SELECT * FROM DUAL"  separator=" "> -->
+<!-- 	 	INTO SPACE_ATTACHMENT (ATTACHMENT_NO -->
+<!-- 										 , ATTACHMENT_RENAME -->
+<!-- 										 , ATTACHMENT_LEVEL -->
+<!-- 										 , SPACE_NO) -->
+<!-- 					 		VALUES	 (SEQ_ANO.NEXTVAL -->
+<!-- 								   		 , #{attachList.attachmentReName} -->
+<!-- 								   		 , #{attachList.attachmentLevel} -->
+<!-- 								   		 , #{attachList.spaceNo}) -->
+<!-- 	</foreach> -->
+<!-- 	</insert> -->
+
+
+
+	<!-- 	공간 선택  -->
+	<select id="selectSpace" parameterType="_int" resultMap="spaceResultSet">
+		SELECT *
+		FROM SPACE	
+        WHERE SPACE_NO = #{spaceNo}
+	</select>
+
+	<!-- 	마지막 공간 PK 가져오기 -->
+	<select id="selectSpaceNo" parameterType="_int" resultType="_int">
+		SELECT SPACE_NO
+		FROM (SELECT SPACE_NO
+		      FROM SPACE  
+		      WHERE HOST_NO = #{hostNo}     
+		      ORDER BY SPACE_NO DESC)
+		WHERE ROWNUM =1
+	</select>
+		
+	<!-- 	공간 추가-->
+	<insert id="insertSpace" parameterType="space">
+		INSERT INTO SPACE (SPACE_NO
+						 , SPACE_TITLE
+						 , SPACE_SUBTITLE
+						 , SPACE_INFO
+						 , HOUR_PRICE
+						 , MAX_PEOPLE
+						 , ADDRESS_DEFAULT
+						 , ADDRESS_DETAIL
+						 , TEL
+						 , HASHTAG
+						 , LATITUDE
+						 , LONGITUDE
+						 , OPEN_TIME
+						 , CLOSE_TIME
+						 , HOST_NO
+						 , STYPE_NO)
+				   VALUES (SEQ_SNO.NEXTVAL
+				   		 , #{spaceTitle}
+				   		 , #{spaceSubTitle}
+				   		 , #{spaceInfo}
+				   		 , #{hourPrice}
+				   		 , #{maxPeople}
+				   		 , #{addressDefault}
+				   		 , #{addressDetail}
+				   		 , #{tel}
+				   		 , #{hashtag}
+				   		 , #{latitude}
+				   		 , #{longitude}
+				   		 , #{openTime}
+				   		 , #{closeTime}
+				   		 , #{hostNo}
+				   		 , #{stypeNo})
+	</insert>
+	
+	<!-- 	공간 수정 재검수 신청 -->
+	<update id="updateSpace" parameterType="space">
+		UPDATE SPACE
+	    SET 
+		  SPACE_TITLE = #{spaceTitle}
+		, SPACE_SUBTITLE = #{spaceSubTitle}
+		, SPACE_INFO = #{spaceInfo}
+		, HOUR_PRICE = #{hourPrice}
+		, MAX_PEOPLE = #{maxPeople}
+		, ADDRESS_DEFAULT = #{addressDefault}
+		, ADDRESS_DETAIL = #{addressDetail}
+		, TEL = #{tel}
+		, HASHTAG = #{hashtag}
+		, SPACE_STATUS = 'W'
+		, LATITUDE = #{latitude}
+		, LONGITUDE = #{longitude}
+		, OPEN_TIME = #{openTime}
+		, CLOSE_TIME = #{closeTime}
+		, DENY_MESSAGE = NULL
+		, SPACE_MODIFY_DATE = SYSDATE
+		, STYPE_NO = #{stypeNo}
+		 WHERE SPACE_NO = #{spaceNo}
+	</update>
+	
+	<!-- 	공간 메인 이미지 수정 재검수 신청 -->
+	<update id="updateMainImg" parameterType="spaceAttachment">
+		UPDATE SPACE_ATTACHMENT
+	    SET ATTACHMENT_RENAME = #{attachmentReName}
+	  , ATTACHMENT_UPLOAD_DATE = SYSDATE
+		WHERE SPACE_NO = #{spaceNo}
+		AND ATTACHMENT_NO = #{attachmentNo}
+	</update>
+	
+	<!-- 공간 기존 추가이미지 삭제-->
+	<delete id="deleteThumImg" parameterType="_int">
+		DELETE
+	    FROM SPACE_ATTACHMENT
+	    WHERE ATTACHMENT_NO = #{ano}
+	</delete>
+	
+	
+	<!-- 	공간 재검수 신청 -->
+	<update id="reInsertSpace" parameterType="_int">
+		UPDATE SPACE
+	    SET SPACE_STATUS = 'W'
+	     , DENY_MESSAGE = NULL
+	     , SPACE_MODIFY_DATE = SYSDATE
+		 WHERE SPACE_NO = #{spaceNo}
+	</update>
+	
+	<!-- 공간 삭제-->
+	<delete id="deleteSpace" parameterType="_int">
+		DELETE
+	    FROM SPACE
+	    WHERE SPACE_NO = #{sno}
+	</delete>
+	
+	<!-- 공간 첨부파일 삭제-->
+	<delete id="deleteSpaceAttachment" parameterType="_int">
+		DELETE
+	    FROM SPACE_ATTACHMENT
+	    WHERE SPACE_NO = #{sno}
+	</delete>
+	
+	<!-- 	호스트 공간 첨부파일 리스트 -->
+	<select id="selectSpaceAttachmentList" parameterType="_int" resultMap="spaceAttachmentResultSet">
+		SELECT *
+		FROM SPACE_ATTACHMENT
+		WHERE SPACE_NO = #{sno}
+		ORDER BY ATTACHMENT_NO
+	</select>
+	
+	<!-- 	공간 리뷰 개수 정현 -->
+	<select id="selectReviewListBySnoCount" parameterType="_int" resultType="_int">
+		SELECT COUNT(*)
+		FROM REVIEW
+        JOIN RESERVE USING(RESERVE_NO)
+		WHERE SPACE_NO = #{spaceNo}
+	</select>
+	<!-- 	공간 리뷰 리스트 정현-->
+	<select id="selectReviewListBySno" parameterType="hashmap" resultMap="reviewResultSet">       
+       SELECT  REVIEW_NO
+	   			, REVIEW_CONT
+                , TO_CHAR(REVIEW_ENROLL_DATE, 'YYYY-MM-DD HH24:MI:SS') AS REVIEW_ENROLL_DATE
+                , RATING
+                , REVIEW_ATTACH1
+                , REVIEW_ATTACH2
+                , REVIEW_ATTACH3
+                , HOST_ANSWER
+                , V.RESERVE_NO
+                , R.MEM_NO
+                , M.MEM_NAME
+                , M.PROFILE_PATH MPROFILE
+                , H.PROFILE_PATH HPROFILE
+                , (SELECT COUNT(*) FROM REVIEW_LIKE L WHERE L.REVIEW_NO = R.REVIEW_NO) AS COUNT
+                , (SELECT COUNT(*) FROM REVIEW_LIKE L WHERE L.MEM_NO = #{memNo} AND L.REVIEW_NO= R.REVIEW_NO) AS LCOUNT
+       FROM REVIEW R
+       JOIN MEMBER M ON R.MEM_NO = M.MEM_NO
+       JOIN RESERVE V ON R.RESERVE_NO = V.RESERVE_NO
+       JOIN SPACE S ON V.SPACE_NO = S.SPACE_NO
+      JOIN MEMBER H ON S.HOST_NO = H.MEM_NO
+       WHERE S.SPACE_NO =  #{spaceNo}
+       AND REVIEW_STATUS = 'N' 
+       ORDER BY REVIEW_NO DESC
+	</select>
+	<!-- 	정현 End -->
+	
+	<!-- 지도 공간 리스트 (사진형게시판) -성훈 -->
+	<select id="selectListForMap" parameterType="hashmap" resultMap="spaceResultSet">
+	    SELECT SPACE_NO, 
+	           SPACE_TITLE, 
+	           HOUR_PRICE, 
+	           HASHTAG, 
+	           LATITUDE, 
+	           LONGITUDE,
+	           MAX_PEOPLE,
+			   SUBSTR((SUBSTR(ADDRESS_DEFAULT, 0, INSTR(ADDRESS_DEFAULT, ' ', 1, 2))),INSTR(ADDRESS_DEFAULT, ' ', 1)+1) ADDRESS_DEFAULT,
+			   ATTACHMENT_RENAME
+	      FROM SPACE
+	 LEFT JOIN SPACE_ATTACHMENT USING (SPACE_NO)
+	     WHERE LATITUDE BETWEEN #{min_lat} AND #{max_lat}
+	       AND LONGITUDE BETWEEN #{min_lng} AND #{max_lng}
+	       AND SPACE_STATUS = 'Y'
+	       AND ATTACHMENT_LEVEL = 1
+	</select>
+	
+	<!-- 지도 필터링된 공간 리스트(지역설정O) -성훈 -->
+	<select id="filterListForMap" parameterType="hashmap" resultMap="spaceResultSet">
+		SELECT SPACE_NO, 
+			   SPACE_TITLE, 
+		       HOUR_PRICE, 
+			   HASHTAG, 
+			   LATITUDE, 
+			   LONGITUDE, 
+			   MAX_PEOPLE,
+			   SUBSTR((SUBSTR(ADDRESS_DEFAULT, 0, INSTR(ADDRESS_DEFAULT, ' ', 1, 2))),INSTR(ADDRESS_DEFAULT, ' ', 1)+1) ADDRESS_DEFAULT,
+			   ATTACHMENT_RENAME
+          FROM SPACE
+     LEFT JOIN SPACE_ATTACHMENT USING (SPACE_NO)
+         WHERE HOUR_PRICE BETWEEN #{min_price} AND #{max_price}
+           AND SPACE_STATUS = 'Y'
+           AND ATTACHMENT_LEVEL = 1
+           AND STYPE_NO IN (<foreach collection="category" item="category" separator=",">
+					           	#{category}
+							</foreach>)
+		   AND (<foreach collection="area" item="area" separator="OR">
+		   			ADDRESS_DEFAULT LIKE '%' || #{area} || '%'
+		   		</foreach>)
+	</select>
+	
+	<!-- 지도 필터링(지역설정X => 현재 보여지는 지도) -성훈 -->
+	<select id="mapFilterOnCurrentMap" parameterType="hashmap" resultMap="spaceResultSet">
+		SELECT SPACE_NO, 
+			   SPACE_TITLE, 
+		       HOUR_PRICE, 
+			   HASHTAG, 
+			   LATITUDE, 
+			   LONGITUDE, 
+			   MAX_PEOPLE,
+			   SUBSTR((SUBSTR(ADDRESS_DEFAULT, 0, INSTR(ADDRESS_DEFAULT, ' ', 1, 2))),INSTR(ADDRESS_DEFAULT, ' ', 1)+1) ADDRESS_DEFAULT,
+			   ATTACHMENT_RENAME
+          FROM SPACE 
+     LEFT JOIN SPACE_ATTACHMENT USING (SPACE_NO)
+         WHERE HOUR_PRICE BETWEEN #{min_price} AND #{max_price}
+           AND LATITUDE BETWEEN #{bound.min_lat} AND #{bound.max_lat}
+	       AND LONGITUDE BETWEEN #{bound.min_lng} AND #{bound.max_lng}
+	       AND SPACE_STATUS = 'Y'
+	       AND ATTACHMENT_LEVEL = 1
+           AND STYPE_NO IN (<foreach collection="category" item="category" separator=",">
+					           	#{category}
+							</foreach>)
+	</select>
+	
+	<!-- 해시태그 검색 -성훈 -->
+	<select id="searchSpaceByHashtag" parameterType="string" resultMap="spaceResultSet">
+		SELECT SPACE_NO, 
+			   SPACE_TITLE, 
+		       HOUR_PRICE, 
+			   HASHTAG, 
+			   LATITUDE, 
+			   LONGITUDE, 
+			   ATTACHMENT_RENAME
+          FROM SPACE
+     LEFT JOIN SPACE_ATTACHMENT USING (SPACE_NO)
+         WHERE HASHTAG LIKE '%' || #{keyword} || '%'
+           AND SPACE_STATUS = 'Y'
+           AND ATTACHMENT_LEVEL = 1
+	</select>
+	
+	<!-- 일반 검색(상호명) -성훈 -->
+	<select id="searchSpaceByKeyword" parameterType="string" resultMap="spaceResultSet">
+		SELECT SPACE_NO, 
+			   SPACE_TITLE, 
+		       HOUR_PRICE, 
+			   HASHTAG, 
+			   LATITUDE, 
+			   LONGITUDE, 
+			   ATTACHMENT_RENAME
+          FROM SPACE
+     LEFT JOIN SPACE_ATTACHMENT USING (SPACE_NO)
+         WHERE SPACE_TITLE LIKE '%' || #{keyword} || '%'
+           AND SPACE_STATUS = 'Y'
+           AND ATTACHMENT_LEVEL = 1
+	</select>
+	
+	<!-- 하연 -->
+	<select id="selectSpaceDetail" parameterType="_int" resultMap="spaceResultSet">
+		SELECT S.*, M.MEM_NAME, M.MEM_ID
+		FROM SPACE S
+		JOIN MEMBER M ON S.HOST_NO = M.MEM_NO
+		WHERE SPACE_NO = #{spaceNo}
+	</select>
+	 
+	<select id="selectSpaceDetailAttachment" parameterType="java.util.List" resultMap="spaceAttachmentResultSet">
+		SELECT *
+		FROM SPACE_ATTACHMENT
+		WHERE SPACE_NO = #{spaceNo}
+	</select>
+	 
+	<insert  id="insertSpaceReport" parameterType="space">
+		INSERT INTO REPORT
+			VALUES(SEQ_RPNO.NEXTVAL
+			     , #{addressDefault}
+			     , #{addressDetail}
+			     , SYSDATE
+			     , 'N'
+			     , null
+			     , null
+			     , #{maxPeople}
+			     , #{hostNo})
+	</insert>
+	
+	<select id="selectSpaceLike" parameterType="bookmark" resultType="_int">
+		SELECT COUNT(*)
+		  FROM BOOKMARK
+		 WHERE BOOKMARK_MEM = #{bookmarkMem}
+		   AND BOOKMARK_SPACE = #{bookmarkSpace}
+	</select>
+	
+	<delete id="deleteSpaceLike" parameterType="bookmark">
+		DELETE
+		  FROM BOOKMARK
+		 WHERE BOOKMARK_MEM = #{bookmarkMem}
+		   AND BOOKMARK_SPACE = #{bookmarkSpace}
+	</delete>
+	
+	<insert id="insertSpaceLike" parameterType="bookmark">
+		INSERT INTO BOOKMARK (BOOKMARK_MEM, BOOKMARK_SPACE)
+						VALUES (#{bookmarkMem}, #{bookmarkSpace})
+		
+	</insert>
+	
+	<update id="increaseCount" parameterType="_int">
+		UPDATE SPACE
+		   SET COUNT = COUNT + 1
+		 WHERE SPACE_NO = #{sno}
+		   AND SPACE_STATUS = 'Y'
+	</update>
+		
+		<!-- 하연 끝  -->
+	 
+	<!-- 뉴스레터 공간 리스트 해쉬태그 검색 조회 - 경미 -->
+	<select id="selectListForNewsletter" parameterType="hashmap" resultMap="spaceResultSet">
+	    SELECT S.SPACE_NO, 
+	           SPACE_TITLE, 
+	           HOUR_PRICE, 
+	           HASHTAG,
+	           SUBSTR((SUBSTR(ADDRESS_DEFAULT, 0, INSTR(ADDRESS_DEFAULT, ' ', 1, 2))),INSTR(ADDRESS_DEFAULT, ' ', 1)+1) ADDRESS_DEFAULT, 
+	           MAX_PEOPLE,
+	           ATTACHMENT_RENAME,
+	           (SELECT COUNT(*) FROM BOOKMARK WHERE BOOKMARK_MEM = #{memNo} AND BOOKMARK_SPACE = S.SPACE_NO) AS OPEN_TIME,
+               (SELECT COUNT(*) FROM REVIEW L JOIN RESERVE V ON L.RESERVE_NO = V.RESERVE_NO  WHERE V.SPACE_NO = S.SPACE_NO) AS CLOSE_TIME
+	           <!--  NVL2(BOOKMARK_SPACE, 1, 0) "OPEN_TIME"-->
+	      FROM SPACE S
+	      LEFT JOIN SPACE_ATTACHMENT A ON (S.SPACE_NO = A.SPACE_NO)
+	      LEFT JOIN BOOKMARK ON (BOOKMARK_SPACE  = S.SPACE_NO)
+	     WHERE SPACE_STATUS = 'Y'
+	       AND ATTACHMENT_LEVEL = 1
+	       <foreach collection="list" item="item" index="index" open="AND (HASHTAG LIKE '%'||" separator="||'%' OR HASHTAG LIKE '%'||" close="||'%')">
+	       	#{item}
+	       </foreach>
+	       AND ROWNUM <![CDATA[<=]]> 15
+	     ORDER BY COUNT DESC
+	</select>
+	
+	<!-- 관리자 공간 리스트 카운트 - 혜민 --> 
+	<select id="selectAdminSpaceListCount" parameterType="hashmap" resultType="_int">
+		SELECT COUNT(*)
+		FROM SPACE
+		<if test="tab == '전체 공간'">
+			WHERE SPACE_STATUS IN ('Y', 'N', 'W')
+		</if>
+		<if test="tab == '미처리 공간'">
+			WHERE SPACE_STATUS = 'W'
+		</if>
+		<if test="tab == '승인된 공간'">
+			WHERE SPACE_STATUS = 'Y'
+		</if>
+	</select>
+
+	<!-- 관리자 공간 리스트 조회 - 혜민 -->
+	<select id="selectAdminSpaceList" parameterType="hashmap" resultMap="spaceResultSet">
+		SELECT SPACE_NO, MEM_ID AS "HOST_NO", SPACE_TITLE, STYPE_NO, SPACE_STATUS, DENY_MESSAGE
+		FROM SPACE
+		JOIN MEMBER M ON (M.MEM_NO = HOST_NO)
+		<if test="tab == '전체 공간'">
+			WHERE SPACE_STATUS IN ('Y', 'N', 'W')
+		</if>
+		<if test="tab == '미처리 공간'">
+			WHERE SPACE_STATUS = 'W'
+		</if>
+		<if test="tab == '승인된 공간'">
+			WHERE SPACE_STATUS = 'Y'
+		</if>
+		ORDER BY SPACE_MODIFY_DATE DESC, SPACE_NO DESC
+	</select>
+
+	<!-- 관리자 공간 처리 (승인, 반려) - 혜민 --> 
+	<update id="updateAdminSpace" parameterType="hashmap">
+		UPDATE SPACE
+		SET SPACE_STATUS = #{spaceStatus}
+		  , DENY_MESSAGE = #{denyMessage}
+		WHERE SPACE_NO = #{spaceNo}
+	</update>
+	
+	<!-- 관리자 공간 검색 개수 조회 - 혜민 -->
+	<select id="selectSpaceSearchListCount" parameterType="hashmap" resultType="_int">
+		SELECT COUNT(*)
+		FROM SPACE
+		JOIN MEMBER M ON (M.MEM_NO = HOST_NO)
+		<if test="condition == 'hostId'">
+			WHERE MEM_ID
+		</if>
+		<if test="condition == 'spaceTitle'">
+			WHERE SPACE_TITLE
+		</if>
+		LIKE '%' || #{keyword} || '%'	
+	</select>
+	
+	<!-- 관리자 공간 검색 리스트 조회 - 혜민 -->
+	<select id="selectSpaceSearchList" parameterType="hashmap" resultMap="spaceResultSet">
+		SELECT SPACE_NO, M.MEM_ID AS "HOST_NO", SPACE_TITLE, STYPE_NO, SPACE_STATUS, DENY_MESSAGE
+		FROM SPACE
+		JOIN MEMBER M ON (M.MEM_NO = HOST_NO)
+		<if test="condition == 'hostId'">
+			WHERE M.MEM_ID
+		</if>
+		<if test="condition == 'spaceTitle'">
+			WHERE SPACE_TITLE
+		</if>
+		LIKE '%' || #{keyword} || '%'	
+		ORDER BY SPACE_MODIFY_DATE DESC, SPACE_NO DESC
+	</select>
+	
+	<!-- 마이페이지 북마크 희섭 -->
+	<select id="selectMypageReportListCount" parameterType="_int" resultType="_int">
+		SELECT COUNT(*)
+		FROM BOOKMARK
+	</select>
+	
+	<select id="selectmypagebookmarkList" parameterType="_int" resultMap="spaceResultSet">
+		SELECT
+			B.SPACE_NO
+		    ,B.SPACE_TITLE
+		    ,SUBSTR((SUBSTR(ADDRESS_DEFAULT, 0, INSTR(ADDRESS_DEFAULT, ' ', 1, 2))),INSTR(ADDRESS_DEFAULT, ' ', 1)+1) ADDRESS_DEFAULT 
+	        ,MAX_PEOPLE
+	        ,(SELECT COUNT(*) FROM BOOKMARK WHERE BOOKMARK_MEM = #{memNo} AND BOOKMARK_SPACE = B.SPACE_NO) AS OPEN_TIME
+		    ,(SELECT COUNT(*) FROM REVIEW L JOIN RESERVE V ON L.RESERVE_NO = V.RESERVE_NO  WHERE V.SPACE_NO = B.SPACE_NO) AS CLOSE_IMTE
+		    ,B.HOUR_PRICE
+		    ,C.ATTACHMENT_RENAME
+		FROM BOOKMARK A
+		INNER JOIN SPACE B
+		ON A.BOOKMARK_SPACE = B.SPACE_NO
+		INNER JOIN SPACE_ATTACHMENT C
+		ON B.SPACE_NO = C.SPACE_NO
+		WHERE
+		    A.BOOKMARK_MEM = ${memNo}
+	</select>
+	
+</mapper>

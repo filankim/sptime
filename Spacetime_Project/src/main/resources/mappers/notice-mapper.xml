@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "mybatis-3-mapper.dtd" >
+<mapper namespace="noticeMapper">
+	
+	<resultMap id="noticeResultSet" type="notice">
+		<result column="NOTICE_NO" property="noticeNo" />
+		<result column="NOTICE_TITLE" property="noticeTitle" />
+		<result column="NOTICE_CONTENT" property="noticeCont" />
+		<result column="NOTICE_ENROLL_DATE" property="noticeEnrollDate" />
+		<result column="NOTICE_STATUS" property="noticeStatus" />
+	</resultMap>
+	
+	<!-- 공지사항 전체 리스트 카운트 쿼리문 - 경미 
+	<select id="selectAllListCount" resultType="_int">
+		SELECT COUNT(*)
+		  FROM NOTICE
+		 WHERE NOTICE_STATUS = 'N'
+	</select>
+	-->
+	
+	<!-- 공지사항 전체 리스트 조회용 쿼리문 - 경미 -->
+	<select id="selectAllList" resultMap="noticeResultSet">
+		SELECT NOTICE_NO, NOTICE_TITLE, NOTICE_CONTENT, NOTICE_ENROLL_DATE
+		  FROM NOTICE
+		 WHERE NOTICE_STATUS = 'N'
+		ORDER BY NOTICE_NO DESC
+	</select>
+	
+	<!-- 공지사항 작성용 쿼리문 - 경미 -->
+	<insert id="insertNotice" parameterType="notice">
+		INSERT INTO NOTICE (NOTICE_NO, NOTICE_TITLE, NOTICE_CONTENT)
+		VALUES (SEQ_NNO.NEXTVAL, #{noticeTitle}, #{noticeCont})
+	</insert>
+	
+	<!-- 공지사항 수정 페이지를 위한 쿼리문 - 경미 -->
+	<select id="selectNotice" parameterType="_int" resultMap="noticeResultSet">
+		SELECT NOTICE_NO, NOTICE_TITLE, NOTICE_CONTENT, NOTICE_ENROLL_DATE
+		  FROM NOTICE
+		 WHERE NOTICE_STATUS = 'N'
+		   AND NOTICE_NO = #{ noticeNo }
+	</select>
+	
+	<!-- 공지사항 수정용 쿼리문 - 경미 -->
+	<update id="updateNotice" parameterType="notice">
+		UPDATE NOTICE
+		   SET NOTICE_TITLE = #{noticeTitle}
+		     , NOTICE_CONTENT = #{noticeCont}
+		 WHERE NOTICE_NO = #{noticeNo}
+	</update>
+	
+	<!-- 공지사항 삭제용 쿼리문 - 경미 -->
+	<update id="deleteNotice" parameterType="_int">
+		UPDATE NOTICE
+		   SET NOTICE_STATUS = 'Y'
+		 WHERE NOTICE_NO = #{noticeNo}
+	</update>
+	
+	<!-- 공지사항 검색 리스트 카운트 쿼리문 - 경미 
+	<select id="selectSearchListCount" parameterType="String" resultType="_int">
+		SELECT COUNT(*)
+		  FROM NOTICE
+		 WHERE (NOTICE_CONTENT LIKE '%'||#{searchText}||'%' OR NOTICE_TITLE LIKE '%'||#{searchText}||'%')
+		   AND NOTICE_STATUS = 'N'
+	</select>
+	-->
+	<!-- 공지사항 검색 리스트 조회용 쿼리문 - 경미 -->
+	<select id="selectSearchList" parameterType="String" resultMap="noticeResultSet">
+		SELECT NOTICE_NO, NOTICE_TITLE, NOTICE_CONTENT, NOTICE_ENROLL_DATE
+		  FROM NOTICE
+		 WHERE NOTICE_STATUS = 'N'
+		   AND (NOTICE_CONTENT LIKE '%'||#{searchText}||'%' OR NOTICE_TITLE LIKE '%'||#{searchText}||'%')
+		ORDER BY NOTICE_NO DESC
+	</select>
+</mapper>

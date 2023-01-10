@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
+	
+	<!-- Root Context: defines shared resources visible to all other web components -->
+	
+	<!-- DB 연결 설정 3단계 -->
+	<!-- 1단계. DB 연결을 위한 도구 (bean) 를 설정 -->
+	<bean class="org.apache.commons.dbcp.BasicDataSource" id="dataSource" destroy-method="close">
+		<!-- 어느 DB 에 접속할건지를 설정 -->
+		<property name="driverClassName" value="oracle.jdbc.driver.OracleDriver" />
+		<property name="url" value="jdbc:oracle:thin:@localhost:1521:xe" />
+		<property name="username" value="SPACETIME" />
+		<property name="password" value="SPACETIME" />
+	</bean>
+	
+	<!-- 2단계. MyBatis Spring 에서 제공하는 SQL 명령어 실행 을 위한 도구 (SqlSessionTemplate) 설정 - 1 -->
+	<!-- 
+		* 순수 마이바티스의 경우 명령을 실행하기 위해 SqlSession 객체가 필요했지만
+		  Spring 에서의 마이바티스 연동시에는 명령을 실행하기 위해 SqlSessionTemplate 객체가 필요함
+		=> SqlSessionFactoryBean 객체를 통해 생성해야함
+	-->
+	<bean class="org.mybatis.spring.SqlSessionFactoryBean" id="sqlSessionFactory">
+		<!-- MyBatis 설정파일의 위치를 지정하여 설정값들을 가지고 오겠다. -->
+		<property name="configLocation" value="classpath:mybatis-config.xml" />
+		<!-- DB 연결을 위한 도구를 참조하겠다. -->
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+	
+	<!-- 3단계. MyBatis Spring 에서 제공하는 SQL 명령어 실행을 위한 도구 (SqlSessionTemplate) 설정 - 2 -->
+	<bean class="org.mybatis.spring.SqlSessionTemplate" id="sqlSession">
+		<!-- 2단계에서 만들었던 SqlSessionFactoryBean 객체를 넘기면서 SqlSessionTemplate 객체를 생성하겠다. -->
+		<constructor-arg ref="sqlSessionFactory" />
+	</bean>
+	
+	<!-- 파일업로드 관련 빈 등록 -->
+	<bean class="org.springframework.web.multipart.commons.CommonsMultipartResolver" id="multipartResolver">
+	
+		<!-- defaultEncoding : 업로드 되는 파일에 대한 인코딩 처리를 어떻게 할건지를 지정 -->
+		<property name="defaultEncoding" value="UTF-8" />
+		<!-- 
+			maxUploadSize : 한번에 업로드 되는 파일의 총 용량 
+			
+			- 총 파일의 최대용량은 10MByte 로 지정
+			10MByte == 10 * 1024 * 1024 Byte
+			단, xml 에서는 계산식이 적용되지 않으므로 직접 계산한 결과를 넣어야 함
+			계산결과 == 10,485,760 => 대략 10,000,000
+		-->
+		<property name="maxUploadSize" value="10485760" />
+		<!-- maxInMemorySize : 메모리 상의 파일 최대 용량 -->
+		<property name="maxInMemorySize" value="10485760" />
+	</bean>
+	
+	<!-- 이메일 인증 관련 빈 등록 -->
+   	<bean id="mailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+		<property name="host" value="smtp.gmail.com" />
+		<property name="port" value="587" />
+		<property name="username" value="final221223@gmail.com" />
+		<property name="password" value="pgvvbsjofowivfao" />
+		<property name="javaMailProperties">
+			<props>
+				<prop key="mail.transport.protocol">smtp</prop>
+				<prop key="mail.smtp.auth">true</prop>
+				<!-- gmail의 경우 보안문제 업데이트로 인해 SSLSocketFactory를 추가해야 smtp 사용 가능. -->
+				<prop key="mail.smtp.socketFactory.class">javax.net.ssl.SSLSocketFactory</prop>
+				<prop key="mail.smtp.starttls.enable">true</prop>
+				<prop key="mail.debug">true</prop>
+				<prop key="mail.smtp.ssl.trust">smtp.gmail.com</prop>
+				<prop key="mail.smtp.ssl.protocols">TLSv1.2</prop>
+			</props>
+		</property>
+  	 </bean>
+</beans>

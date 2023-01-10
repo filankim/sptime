@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "mybatis-3-mapper.dtd" >
+<mapper namespace="memberMapper">
+	
+	<!-- MEMBER 테이블로부터 조회된 내용을 Member 타입으로 가공해주는 ResultMap -->
+	<resultMap id="memberResultSet" type="member">
+		<result column="MEM_NO" property="memNo" />
+		<result column="MEM_ID" property="memId" />
+		<result column="MEM_PWD" property="memPwd" />
+		<result column="MEM_NAME" property="memName" />
+		<result column="GENDER" property="gender" />
+		<result column="BIRTHDAY" property="birthday" />
+		<result column="NICKNAME" property="nickname" />
+		<result column="PHONE" property="phone" />
+		<result column="EMAIL" property="email" />
+		<result column="PROFILE_PATH" property="profilePath" />
+		<result column="ENROLL_DATE" property="enrollDate" />
+		<result column="HOST_STATUS" property="hostStatus" />
+		<result column="BANK_NAME" property="bankName" />
+		<result column="ACCOUNT_NUM" property="accountNum" />
+		<result column="BLACKLIST_YN" property="blacklist" />
+		<result column="BLACKLIST_REASON" property="blacklistReason" />
+		<result column="MEM_STATUS" property="memStatus" />
+		<result column="GR_CODE" property="grCode" />
+	</resultMap>
+
+	<!-- 로그인용 쿼리문 - 경미 -->
+	<select id="loginMember" parameterType="member" resultMap="memberResultSet">
+		SELECT MEM_NO, MEM_ID, MEM_PWD, MEM_NAME, GENDER, NICKNAME, PHONE, EMAIL, PROFILE_PATH, ENROLL_DATE, HOST_STATUS, BANK_NAME, ACCOUNT_NUM, BLACKLIST_YN, BLACKLIST_REASON, MEM_STATUS, GR_NAME AS "GR_CODE"
+		FROM MEMBER
+		JOIN MEMBER_GRADE USING (GR_CODE)
+		WHERE MEM_ID = #{memId}
+	</select>
+	
+	<!-- 회원가입용 쿼리문 - 경미 -->
+	<insert id="insertMember" parameterType="member">
+		INSERT INTO MEMBER (MEM_NO
+						, MEM_ID
+						, MEM_PWD
+						, MEM_NAME
+						, GENDER
+						, BIRTHDAY
+						, NICKNAME
+						, PHONE
+						, EMAIL)
+					VALUES (SEQ_MNO.NEXTVAL
+						, #{memId}
+						, #{memPwd}
+						, #{memName}
+						, #{gender}
+						, TO_DATE(#{birthday}, 'YYYYMMDD')
+						, #{nickname}
+						, #{phone}
+						, #{email})
+	</insert>
+	
+	<!-- 회원 탈퇴용 쿼리문 - 경미 -->
+	<update id="deleteMember" parameterType="_int">
+		UPDATE MEMBER
+		SET MEM_STATUS = 'Y'
+		WHERE MEM_NO = #{memNo}
+	</update>
+	
+	<!-- 아이디 중복체크 쿼리문 - 경미 -->
+	<select id="idCheck" parameterType="string" resultType="_int">
+		SELECT COUNT(*)
+		FROM MEMBER
+		WHERE MEM_ID = #{checkId}
+	</select>
+	
+	<!-- 닉네임 중복체크 쿼리문 - 경미 -->
+	<select id="nickCheck" parameterType="string" resultType="_int">
+		SELECT COUNT(*)
+		FROM MEMBER
+		WHERE NICKNAME = #{checkNick}
+	</select>
+	
+	<!-- 이메일 중복체크 쿼리문 - 경미 -->
+	<select id="emailCheck" parameterType="string" resultType="_int">
+		SELECT COUNT(*)
+		  FROM MEMBER
+		 WHERE EMAIL = #{checkEmail}
+	</select>
+	
+	<!-- 아이디 찾기 쿼리문 - 경미 -->
+	<select id="findId" parameterType="member" resultType="String">
+		SELECT MEM_ID
+		  FROM MEMBER
+		 WHERE EMAIL = #{email}
+		   AND MEM_NAME = #{memName}
+		   AND PHONE = #{phone}
+		   AND MEM_STATUS = 'N'
+	</select>
+	
+	<!-- 비밀번호 변경용 쿼리문 - 경미 -->
+	<update id="changePwd" parameterType="member">
+		UPDATE MEMBER
+		   SET MEM_PWD = #{memPwd}
+		 WHERE MEM_ID = #{memId}
+		   AND MEM_STATUS = 'N'
+	</update>
+	
+	<!-- 회원정보 업데이트용 쿼리문 - 경미 -->
+	<update id="updateMember" parameterType="hashmap">
+		UPDATE MEMBER
+		<choose>
+			<when test="profilePath != null">
+				SET PROFILE_PATH = #{profilePath}
+				, NICKNAME = #{nickname}
+			</when>
+			<when test="profilePath == null and nickname != null">
+				SET NICKNAME = #{nickname}
+			</when>
+			<when test="phone != null">
+				SET PHONE = #{phone}
+			</when>
+			<when test="memPwd != null">
+				SET MEM_PWD = #{memPwd}
+			</when>
+			<when test="bankName != null">
+				SET BANK_NAME = #{bankName}
+				, ACCOUNT_NUM = #{accountNum}
+			</when>
+		</choose>
+		WHERE MEM_ID = #{memId}
+		AND MEM_STATUS = 'N'
+	</update>
+	
+	<!-- 회원 등급 변경(상향) 쿼리문 - 경미 -->
+	<update id="updateGrade" parameterType="hashmap">
+		UPDATE MEMBER
+		<choose>
+			<when test="sumPrice >= 1000000">
+				SET GR_CODE = 'S'
+				WHERE MEM_NO = #{memNo}
+			</when>
+			<when test="sumPrice >= 500000">
+				SET GR_CODE = 'E'
+				WHERE MEM_NO = #{memNo}
+			</when>
+			<otherwise>
+				SET GR_CODE = 'M'
+				WHERE MEM_NO = 0
+			</otherwise>
+		</choose>
+	</update>
+	
+	<!-- 회원 등급 변경(하향) 쿼리문 - 경미 -->
+	<update id="downGrade" parameterType="hashmap">
+		UPDATE MEMBER
+		<choose>
+			<when test="sumPrice lt 500000">
+				SET GR_CODE = 'M'
+				WHERE MEM_NO = #{memNo}
+			</when>
+			<when test="sumPrice lt 1000000">
+				SET GR_CODE = 'E'
+				WHERE MEM_NO = #{memNo}
+			</when>
+			<otherwise>
+				SET GR_CODE = 'S'
+				WHERE MEM_NO = 0
+			</otherwise>
+		</choose>
+	</update>
+	
+	<!-- 회원수 조회용 쿼리문 - 혜민 -->
+	<select id="selectMemberListCount" resultType="_int">
+		SELECT COUNT(*)
+		FROM MEMBER
+		<if test="tab == '전체 회원'">
+			WHERE MEM_STATUS = 'N'
+		</if>
+		<if test="tab == '게스트'">
+			WHERE MEM_STATUS = 'N'
+			  AND HOST_STATUS = 'N'
+			  AND BLACKLIST_YN = 'N'
+		</if>
+		<if test="tab == '호스트'">
+			WHERE MEM_STATUS = 'N'
+			  AND HOST_STATUS = 'Y'
+			  AND BLACKLIST_YN = 'N'
+		</if>
+		<if test="tab == '블랙리스트'">
+			WHERE MEM_STATUS = 'N'
+			  AND BLACKLIST_YN = 'Y'
+		</if>
+	</select>
+	
+	<!-- 회원 리스트 조회용 쿼리문 - 혜민 -->
+	<select id="selectMemberList" resultMap="memberResultSet">
+		SELECT MEM_NO, MEM_NAME, MEM_ID, NICKNAME, GR_NAME AS "GR_CODE", ENROLL_DATE, MEM_STATUS, BLACKLIST_YN
+		FROM MEMBER
+		JOIN MEMBER_GRADE USING (GR_CODE)
+		<if test="tab == '전체 회원'">
+			WHERE MEM_STATUS = 'N'
+		</if>
+		<if test="tab == '게스트'">
+			WHERE MEM_STATUS = 'N'
+			  AND HOST_STATUS = 'N'
+			  AND BLACKLIST_YN = 'N'
+		</if>
+		<if test="tab == '호스트'">
+			WHERE MEM_STATUS = 'N'
+			  AND HOST_STATUS = 'Y'
+			  AND BLACKLIST_YN = 'N'
+		</if>
+		<if test="tab == '블랙리스트'">
+			WHERE MEM_STATUS = 'N'
+			  AND BLACKLIST_YN = 'Y'
+		</if>
+		ORDER BY MEM_NO DESC
+	</select>
+	
+	<!-- 회원 상세정보 조회용 쿼리문 - 혜민 -->
+	<select id="selectMember" parameterType="_int" resultMap="memberResultSet">
+		SELECT MEM_NO, MEM_ID, MEM_NAME, GENDER, NICKNAME, PHONE, EMAIL, PROFILE_PATH, ENROLL_DATE, HOST_STATUS, BANK_NAME, ACCOUNT_NUM, BLACKLIST_YN, BLACKLIST_REASON, MEM_STATUS, GR_NAME AS "GR_CODE"
+		FROM MEMBER
+		JOIN MEMBER_GRADE USING (GR_CODE)
+		WHERE MEM_NO = #{memNo}
+	</select>
+	
+	<!-- 호스트 신청 쿼리문 - 희섭 -->
+	
+	<!-- 
+		기존에 있던 회원이 로그인 후에 호스트 신청을 하는거기때문에
+		시간의 흐름상 로그인 후라는 것은 이미 회원 정보가 insert 되어있는 상태
+		기존의 회원 정보에 호스트 등록시 필요한 계좌번호 정보를 덧씌울것 => update 구문*******
+		
+		MEMBER 테이블로
+		memNo 이 xx 인 회원의 정보를 찾아서
+		bankName, accountNum, hostStatus = 'Y' 로 변경하기
+	 -->
+	 <update id="inserthostRequest" parameterType="member">
+		UPDATE MEMBER
+		   SET 	 BANK_NAME = #{bankName}
+		 		,ACCOUNT_NUM = #{accountNum}
+		 		,HOST_STATUS = 'Y'
+		WHERE MEM_ID = #{memId}
+	</update>
+	
+	<!-- 회원 검색 개수 조회용 쿼리문 - 혜민 -->
+	<select id="selectMemberSearchListCount" parameterType="hashmap" resultType="_int">
+		SELECT COUNT(*)
+		FROM MEMBER
+		WHERE MEM_STATUS = 'N'
+		<if test="condition == 'name'">
+		    AND MEM_NAME
+		</if>
+		<if test="condition == 'id'">
+		    AND MEM_ID
+		</if>
+		<if test="condition == 'nickName'">
+		    AND NICKNAME
+		</if>
+		<if test="condition == 'email'">
+			AND EMAIL
+		</if>
+		LIKE '%' || #{keyword} || '%'
+	</select>
+	
+	<!-- 회원 검색 조회용 쿼리문 - 혜민 -->
+	<select id="selectMemberSearchList" parameterType="hashmap" resultMap="memberResultSet">
+		SELECT MEM_NO, MEM_NAME, MEM_ID, NICKNAME, GR_NAME AS "GR_CODE", ENROLL_DATE, MEM_STATUS, BLACKLIST_YN
+		FROM MEMBER
+		JOIN MEMBER_GRADE USING (GR_CODE)
+		WHERE MEM_STATUS = 'N'
+		<if test="condition == 'name'">
+		    AND MEM_NAME
+		</if>
+		<if test="condition == 'id'">
+		    AND MEM_ID
+		</if>
+		<if test="condition == 'nickName'">
+		    AND NICKNAME
+		</if>
+		<if test="condition == 'email'">
+		    AND EMAIL
+		</if>
+		LIKE '%' || #{keyword} || '%'
+		ORDER BY MEM_NO DESC
+	</select>
+	
+</mapper>
