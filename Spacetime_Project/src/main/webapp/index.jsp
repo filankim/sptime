@@ -9,6 +9,6 @@
 <body>
 
 	<jsp:forward page="WEB-INF/views/main.jsp" />
-	bb
+	<p>hello</p>
 </body>
 </html>
