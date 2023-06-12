@@ -26,7 +26,7 @@ public class NoticeController {
 	
 	@Autowired
 	private NoticeService noticeService;
-	
+	//okok
 	/**
 	 * 공지사항 전체 리스트 조회 - 경미
 	 * @param currentPage

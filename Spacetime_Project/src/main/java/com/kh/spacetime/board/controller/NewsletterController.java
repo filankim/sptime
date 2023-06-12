@@ -29,7 +29,7 @@ public class NewsletterController {
   
 	@Autowired
 	private NewsletterService newsletterService;
-	
+	//okok
 	@Autowired
 	private SpaceService spaceService;
 	
